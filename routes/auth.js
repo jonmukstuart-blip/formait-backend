@@ -13,12 +13,21 @@ router.post("/login", async (req, res) => {
         if (email === "admin@forma.it" && password === "password") {
             
             // Generate and send an authorized signature handoff token string
-            const devToken = "sandbox-dev-token-99999";
+           const token = jwt.sign(
+    {
+        email,
+        role: "admin"
+    },
+    process.env.JWT_SECRET || "development_secret_key",
+    {
+        expiresIn: "24h"
+    }
+);
 
-            return res.status(200).json({ 
-                success: true, 
-                token: devToken 
-            });
+return res.status(200).json({
+    success: true,
+    token
+});
         }
 
         // If credentials fail, return a clean authentication error

@@ -19,6 +19,12 @@ router.post("/", async (req, res) => {
       message
     });
 
+    if (req.app.get("io")) {
+    req.app.get("io").emit("globalWorkspaceSyncRequest", {
+        action: "NEW_MESSAGE"
+    });
+}
+
     // SEND EMAIL
     await sendMail({ name, email, message });
 
