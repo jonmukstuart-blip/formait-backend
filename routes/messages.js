@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import Message from "../models/Message.js";
 import { protect } from "../middleware/auth.js";
+import { sendMail } from "../services/mailer.js";
 
 const router = express.Router();
 
@@ -108,24 +109,16 @@ router.post("/:id/reply", protect, upload.single("file"), async (req, res) => {
             return res.status(404).json({ error: "Ticket not found" });
         }
 
-        await transporter.sendMail({
-    from: `"FORMA.IT" <${process.env.EMAIL_USER}>`,
-    to: updatedTicket.email,
-    subject: "Response from FORMA.IT",
-
-    text: `Hi ${updatedTicket.name},
-
-Thank you for contacting FORMA.IT.
-
-Our response:
-
-${replyText}
-
-Best regards,
-FORMA.IT Team`
+await sendMail({
+    name: updatedTicket.name,
+    email: updatedTicket.email,
+    message: replyText
 });
 
-        console.log(`💾 Reply saved for ticket: ${id}`);
+console.log("📧 Reply email dispatched to:", updatedTicket.email);
+
+console.log(`💾 Reply saved for ticket: ${id}`);
+
 
         if (req.app?.get("io")) {
             req.app.get("io").emit("globalWorkspaceSyncRequest", {
