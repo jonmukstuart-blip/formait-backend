@@ -5,6 +5,51 @@ import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 
+// ==========================================================================
+// PUBLIC CONTACT MESSAGE INTAKE (POST /api/messages)
+// ==========================================================================
+router.post("/", async (req, res) => {
+    try {
+
+        const { name, email, message } = req.body;
+
+        if (!name || !email || !message) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields required"
+            });
+        }
+
+        const newMessage = await Message.create({
+            name,
+            email,
+            message
+        });
+
+        // realtime admin update
+        if (req.app.get("io")) {
+            req.app.get("io").emit("globalWorkspaceSyncRequest", {
+                action: "NEW_MESSAGE"
+            });
+        }
+
+        res.status(201).json({
+            success: true,
+            data: newMessage
+        });
+
+    } catch (err) {
+
+        console.error("MESSAGE ERROR:", err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+
+    }
+});
+
 // High-performance binary processing in memory preserves cloud filesystem security bounds
 const upload = multer({
     storage: multer.memoryStorage(),

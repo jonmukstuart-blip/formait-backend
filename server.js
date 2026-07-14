@@ -1,7 +1,9 @@
 // backend/server.js
 import dotenv from "dotenv";
-dotenv.config(); // Must remain on top to feed values to modules
+dotenv.config();
 
+console.log("MAIL USER:", process.env.EMAIL_USER);
+console.log("MAIL PASS:", process.env.EMAIL_PASS ? "FOUND" : "MISSING");
 import { setServers } from "node:dns";
 try {
     setServers(["8.8.8.8", "8.8.4.4"]); // Safely map database stream connections
