@@ -108,6 +108,7 @@ router.post("/:id/reply", protect, upload.single("file"), async (req, res) => {
         if (!updatedTicket) {
             return res.status(404).json({ error: "Ticket not found" });
         }
+console.log("📨 Attempting email send to:", updatedTicket.email);
 
 await sendMail({
     name: updatedTicket.name,
@@ -132,9 +133,15 @@ console.log(`💾 Reply saved for ticket: ${id}`);
             data: updatedTicket
         });
 
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+   } catch (err) {
+
+    console.error("❌ REPLY ERROR:", err);
+
+    res.status(500).json({
+        error: err.message
+    });
+
+}
 });
 // ==========================================================================
 // C. ADMINISTRATIVE CLOSE BUTTON ROUTE LAYER (DELETE /api/messages/:id)
