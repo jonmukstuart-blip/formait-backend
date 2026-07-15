@@ -74,6 +74,7 @@ router.get("/", protect, async (req, res) => {
 // B. ADMINISTRATIVE REPLY + ATTACHMENT CHANNEL INTAKE (POST /api/messages/:id/reply)
 // ==========================================================================
 router.post("/:id/reply", protect, upload.single("file"), async (req, res) => {
+    console.log("🔥 ADMIN REPLY ROUTE HIT:", req.params.id);
     try {
         const { id } = req.params;
         const { replyText } = req.body;
