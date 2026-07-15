@@ -87,8 +87,15 @@ router.post("/media/upload", protect, uploadMiddleware.single("file"), async (re
             data: savedAsset
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+
+    console.error("🔥 PORTFOLIO CREATION CRASH:", err);
+
+    res.status(500).json({
+        error: err.message,
+        stack: err.stack
+    });
+
+}
 });
 
 router.get("/modules", (req, res) => {
@@ -171,8 +178,13 @@ router.post("/portfolio", protect, uploadMiddleware.single("file"), async (req, 
         const { title, client, status, tags } = req.body;
         
         // Parse the tech stack tags array back into JSON format safely
-        const parsedTags = tags ? JSON.parse(tags) : [];
+      let parsedTags = [];
 
+try {
+    parsedTags = tags ? JSON.parse(tags) : [];
+} catch(err) {
+    parsedTags = [];
+}
         // Track image URL url paths natively if a physical thumbnail was uploaded
         let uploadedImageUrl = "";
         if (req.file) {
@@ -208,9 +220,15 @@ router.post("/portfolio", protect, uploadMiddleware.single("file"), async (req, 
         }
 
         res.status(201).json({ success: true, data: newProject });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+   } catch (err) {
+
+    console.error("❌ PORTFOLIO CREATION FAILED:", err);
+
+    res.status(500).json({
+        error: err.message,
+        stack: err.stack
+    });
+}
 });
 
 // ==========================================================================
