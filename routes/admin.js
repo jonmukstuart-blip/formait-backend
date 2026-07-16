@@ -21,6 +21,7 @@ import Activity from "../models/Activity.js";
 import EmailTemplate from "../models/EmailTemplate.js";
 import Analytics from "../models/Analytics.js";
 import AiContext from "../models/AiContext.js";
+import fs from "fs";
 
 const router = express.Router(); 
 
@@ -175,6 +176,11 @@ router.get("/portfolio", protect, async (req, res) => {
 // Replace your router.post("/portfolio") route inside backend/routes/admin.js with this:
 router.post("/portfolio", protect, uploadMiddleware.single("file"), async (req, res) => {
     try {
+
+        console.log("===== PORTFOLIO CREATE =====");
+        console.log("BODY:", req.body);
+        console.log("FILE:", req.file);
+
         const { title, client, status, tags } = req.body;
         
         // Parse the tech stack tags array back into JSON format safely
@@ -220,14 +226,16 @@ try {
         }
 
         res.status(201).json({ success: true, data: newProject });
-   } catch (err) {
+} catch (err) {
 
-    console.error("❌ PORTFOLIO CREATION FAILED:", err);
+    console.error("PORTFOLIO CREATE ERROR");
+    console.error(err);
 
     res.status(500).json({
-        error: err.message,
-        stack: err.stack
+        success: false,
+        error: err.message
     });
+
 }
 });
 
