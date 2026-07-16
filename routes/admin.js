@@ -21,14 +21,20 @@ import Activity from "../models/Activity.js";
 import EmailTemplate from "../models/EmailTemplate.js";
 import Analytics from "../models/Analytics.js";
 import AiContext from "../models/AiContext.js";
-import fs from "fs";
 
 const router = express.Router(); 
 
+import fs from "fs";
+
+const uploadDir = "uploads";
+
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 // Disk configuration mapping engine bounds
 const storageConfig = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "uploads/"); // Safely routing stream blocks to storage disk bounds path directories
+        cb(null, uploadDir); // Safely routing stream blocks to storage disk bounds path directories
     },
     filename: (req, file, cb) => {
         const structuralTimestampKey = Date.now();
