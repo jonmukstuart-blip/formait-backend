@@ -80,9 +80,8 @@ router.post("/generate", (req, res) => {
                 error: "Missing projectId or projectTitle"
             });
         }
-
-      const url =
-`http://127.0.0.1:5501/testimonial.html?projectId=${projectId}&project=${encodeURIComponent(projectTitle)}`;
+const url =
+`https://formaitgroup.com/testimonial.html?projectId=${projectId}&project=${encodeURIComponent(projectTitle)}`;
 
         console.log("GENERATED URL:", url);
 

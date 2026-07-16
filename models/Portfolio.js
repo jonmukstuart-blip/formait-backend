@@ -1,34 +1,39 @@
 import mongoose from "mongoose";
 
 const PortfolioSchema = new mongoose.Schema({
-    title: { 
-        type: String, 
-        required: true 
-    },
 
-    client: { 
-        type: String, 
-        required: true 
-    },
+title:{
+ type:String,
+ required:true
+},
 
-    status: { 
-        type: String, 
-        default: "Published" 
-    },
+client:{
+ type:String,
+ required:true
+},
 
-    tags: [
-        {
-            type: String
-        }
-    ],
+status:{
+ type:String,
+ default:"Published"
+},
 
-    imageUrl: {
-        type: String,
-        default: ""
-    }
+tags:[
+{
+type:String
+}
+],
 
-}, { 
-    timestamps: true 
+imageUrl:{
+type:String,
+default:""
+},
+
+testimonialStatus:{
+type:String,
+default:"pending"
+}
+
+},{
+timestamps:true
 });
-
 export default mongoose.model("Portfolio", PortfolioSchema);

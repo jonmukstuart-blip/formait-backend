@@ -1,5 +1,6 @@
 import express from "express";
 import Testimonial from "../models/Testimonial.js";
+import Portfolio from "../models/Portfolio.js";
 import { protect } from "../middleware/auth.js";
 import { upload } from "../middleware/upload.js";
 
@@ -14,12 +15,40 @@ router.get("/", protect, async (req, res) => {
 
 // APPROVE
 router.put("/:id/approve", protect, async (req, res) => {
-    const updated = await Testimonial.findByIdAndUpdate(
-        req.params.id,
-        { status: "approved" },
-        { new: true }
-    );
-    res.json(updated);
+
+    try {
+
+        const testimonial = await Testimonial.findByIdAndUpdate(
+            req.params.id,
+            {
+                status:"approved"
+            },
+            {
+                new:true
+            }
+        );
+
+
+        // update portfolio status
+        await Portfolio.findByIdAndUpdate(
+            testimonial.projectId,
+            {
+                testimonialStatus:"completed"
+            }
+        );
+
+
+        res.json(testimonial);
+
+
+    } catch(err){
+
+        res.status(500).json({
+            error:err.message
+        });
+
+    }
+
 });
 
 
