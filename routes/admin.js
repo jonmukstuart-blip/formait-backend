@@ -422,20 +422,6 @@ router.get("/operators", protect, async (req, res) => {
     }
 });
 
-router.post("/operators", protect, async (req, res) => {
-    try {
-        const freshSeat = await Operator.create(req.body);
-        
-        // Broadcast the real-time mutation pulse down your websocket transport channels
-        if (req.app && req.app.get("io")) {
-            req.app.get("io").emit("globalWorkspaceSyncRequest", { action: "DATABASE_OPERATORS_SYNC", tab: "users & roles" });
-        }
-        res.status(201).json({ success: true, data: freshSeat });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // 1. SUSPEND/ACTIVATE SEAT OPERATOR MATRIX (PUT /api/admin/operators/:id/status)
 router.post("/operators", protect, async (req, res) => {
     try {
