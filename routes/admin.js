@@ -199,19 +199,14 @@ try {
 }
         // Track image URL url paths natively if a physical thumbnail was uploaded
         let uploadedImageUrl = "";
-        if (req.file) {
-            uploadedImageUrl = `https://formait-backend.onrender.com/uploads/${req.file.filename}`;
-            
-            // 🚀 INTEGRITY LOGGING BONUS: Create a metadata log inside your general Media Asset collection too!
-            const mediaLog = new MediaAsset({
-                fileName: req.file.originalname,
-                storageUrl: uploadedImageUrl,
-                fileMimeType: req.file.mimetype,
-                fileSizeBytes: req.file.size,
-                uploadedBy: req.user?.email || "Portfolio Engine"
-            });
-            await mediaLog.save();
-        }
+if (req.file) {
+
+    uploadedImageUrl =
+    `https://formait-backend.onrender.com/uploads/${req.file.filename}`;
+
+    console.log("MEDIA LOG SKIPPED FOR TEST");
+
+}
 
         // Save project metrics along with its cover layout straight to MongoDB Atlas
         const newProject = await Portfolio.create({
