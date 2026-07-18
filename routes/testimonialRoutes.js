@@ -25,6 +25,25 @@ router.get("/", protect, async (req, res) => {
     }
 });
 
+// ========================================================
+// GET APPROVED PORTFOLIO TESTIMONIALS (Public)
+// ========================================================
+router.get("/approved", async (req, res) => {
+    try {
+        const testimonials = await Testimonial.find({
+            status: "approved"
+        })
+        .populate("projectId")
+        .sort({ createdAt: -1 });
+
+        res.json(testimonials);
+
+    } catch (err) {
+        res.status(500).json({
+            error: err.message
+        });
+    }
+});
 
 // ========================================================
 // GET ONE TESTIMONIAL USING REVIEW TOKEN (Public)
@@ -97,33 +116,31 @@ const url =
 // APPROVE TESTIMONIAL
 // ========================================================
 router.put("/:id/approve", protect, async (req, res) => {
-
     try {
-
         const testimonial = await Testimonial.findByIdAndUpdate(
-
             req.params.id,
-
             {
-                approved: true
+                status: "approved"
             },
-
             {
-                new: true
+                new: true,
+                runValidators: true
             }
-
         );
+
+        if (!testimonial) {
+            return res.status(404).json({
+                error: "Testimonial not found."
+            });
+        }
 
         res.json(testimonial);
 
     } catch (err) {
-
         res.status(500).json({
             error: err.message
         });
-
     }
-
 });
 
 router.get("/review/:token", async (req, res) => {

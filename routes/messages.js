@@ -1,5 +1,5 @@
 import express from "express";
-import multer from "multer";
+import { upload } from "../middleware/upload.js";
 import Message from "../models/Message.js";
 import { protect } from "../middleware/auth.js";
 import { sendMail } from "../services/mailer.js";
@@ -51,12 +51,6 @@ router.post("/", async (req, res) => {
     }
 });
 
-// High-performance binary processing in memory preserves cloud filesystem security bounds
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 45 * 1024 * 1024 } // Strict 45MB validation payload max ceiling limit check
-});
-
 // ==========================================================================
 // A. RETRIEVE ACTIVE SUPPORT INQUIRIES (GET /api/messages)
 // ==========================================================================
@@ -67,6 +61,26 @@ router.get("/", protect, async (req, res) => {
         res.status(200).json(messages);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// GET ONE SUPPORT MESSAGE
+router.get("/:id", protect, async (req, res) => {
+    try {
+        const message = await Message.findById(req.params.id);
+
+        if (!message) {
+            return res.status(404).json({
+                error: "Message not found"
+            });
+        }
+
+        res.status(200).json(message);
+
+    } catch (err) {
+        res.status(500).json({
+            error: err.message
+        });
     }
 });
 
@@ -85,9 +99,10 @@ router.post("/:id/reply", protect, upload.single("file"), async (req, res) => {
 
         let dynamicAttachmentUrl = "";
 
-        if (req.file) {
-            dynamicAttachmentUrl = `https://formait-backend.onrender.com/uploads/${req.file.filename}`;
-        }
+if (req.file) {
+    dynamicAttachmentUrl =
+        `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+}
 
         const updatePayload = {
             $push: {
