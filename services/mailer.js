@@ -344,6 +344,7 @@ export async function sendMail({ name, email, message }) {
     </td>
 </tr>
 
+
 </table>
 
 </td>
