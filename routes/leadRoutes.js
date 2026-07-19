@@ -1,6 +1,7 @@
 import express from "express";
 import Lead from "../models/Lead.js";
 import { protect } from "../middleware/auth.js";
+import { sendMail } from "../services/mailer.js";
 
 const router = express.Router();
 
@@ -76,6 +77,66 @@ router.post("/", async (req, res) => {
             error: err.message
         });
 
+    }
+});
+
+// ==========================================================================
+// REPLY TO LEAD
+// ==========================================================================
+router.post("/:id/reply", protect, async (req, res) => {
+    try {
+        const replyText = req.body.replyText || req.body.reply;
+
+        if (!replyText || !replyText.trim()) {
+            return res.status(400).json({
+                error: "Reply text is required"
+            });
+        }
+
+        const lead = await Lead.findById(req.params.id);
+
+        if (!lead) {
+            return res.status(404).json({
+                error: "Lead not found"
+            });
+        }
+
+        if (!lead.email) {
+            return res.status(400).json({
+                error: "This lead does not have an email address"
+            });
+        }
+
+        await sendMail({
+            name: lead.name,
+            email: lead.email,
+            message: replyText.trim()
+        });
+
+        lead.reply = replyText.trim();
+        lead.repliedAt = new Date();
+        lead.status = "contacted";
+
+        await lead.save();
+
+        if (req.app.get("io")) {
+            req.app.get("io").emit("globalWorkspaceSyncRequest", {
+                action: "DATABASE_LEADS_SYNC",
+                tab: "leads"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: lead
+        });
+
+    } catch (err) {
+        console.error("[LEAD REPLY ERROR]", err);
+
+        res.status(500).json({
+            error: err.message
+        });
     }
 });
 
