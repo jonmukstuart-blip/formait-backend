@@ -12,7 +12,7 @@ export async function sendMail({ name, email, message }) {
 
     const fromEmail =
         process.env.RESEND_FROM_EMAIL ||
-        "FORMA.IT Support <support@formaitgroup.com>";
+        "forma.IT Support <support@formaitgroup.com>";
 
     if (!apiKey) {
         throw new Error("RESEND_API_KEY is missing.");
@@ -48,7 +48,7 @@ export async function sendMail({ name, email, message }) {
                     from: fromEmail,
                     to: [email],
                     reply_to: "support@formaitgroup.com",
-                    subject: "A response from FORMA.IT",
+                    subject: "A response from forma.IT",
 
                    html: `
 <!DOCTYPE html>
@@ -85,7 +85,7 @@ export async function sendMail({ name, email, message }) {
     </style>
 </head>
 
-<body style="margin:0;padding:0;background:#f1f3f5;font-family:Arial,Helvetica,sans-serif;color:#18181b;">
+<body style="margin:0;padding:0;background:#020617;font-family:Arial,Helvetica,sans-serif;color:#ffffff;">
 
 <table
     role="presentation"
@@ -100,287 +100,249 @@ export async function sendMail({ name, email, message }) {
 
 <table
     role="presentation"
-    width="640"
+    width="760"
     cellspacing="0"
     cellpadding="0"
     border="0"
     class="email-shell"
-    style="width:640px;max-width:640px;background:#ffffff;border-collapse:collapse;"
+    style="width:760px;max-width:760px;background:#071426;border:1px solid #1e3a5f;border-radius:18px;overflow:hidden;border-collapse:collapse;"
 >
 
-    <!-- Logo -->
-    <tr>
-        <td align="center" style="padding:34px 20px 22px;">
-            <div style="font-size:30px;font-weight:800;letter-spacing:-1.5px;color:#111111;">
-                forma<span style="color:#2563eb;">.IT</span>
-            </div>
+<!-- Header -->
+<tr>
+    <td style="padding:30px 38px;background:#081a33;border-bottom:1px solid #17355c;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td>
+<img
+    src="https://formaitgroup.com/frontend/assets/image/logo.png"
+    width="150"
+    alt="forma.IT Group"
+    style="display:block;width:150px;max-width:100%;height:auto;border:0;"
+>
+                </td>
 
-            <div style="font-size:9px;letter-spacing:4px;color:#71717a;text-transform:uppercase;margin-top:5px;">
-                Group
-            </div>
-        </td>
-    </tr>
+                <td align="right">
+                    <a
+                        href="https://formaitgroup.com"
+                        style="display:inline-block;padding:11px 18px;background:#2563eb;color:#ffffff;border-radius:8px;text-decoration:none;font-size:11px;font-weight:bold;"
+                    >
+                        VISIT WEBSITE
+                    </a>
+                </td>
+            </tr>
+        </table>
+    </td>
+</tr>
 
-    <!-- Message -->
-    <tr>
-        <td
-            class="email-padding"
-            style="padding:15px 52px 38px;"
+<!-- Message -->
+<tr>
+    <td class="email-padding" style="padding:38px 48px;">
+        <h1 style="font-size:25px;line-height:1.3;margin:0 0 16px;color:#ffffff;">
+            Hello ${safeName},
+        </h1>
+
+        <p style="font-size:15px;line-height:1.75;color:#b8c5d8;margin:0 0 20px;">
+            Thank you for contacting forma.IT. Our team has reviewed your
+            enquiry and prepared the following response:
+        </p>
+
+        <div style="margin:24px 0;padding:22px;background:#0b2343;border-left:4px solid #3b82f6;border-radius:0 10px 10px 0;color:#e2e8f0;font-size:15px;line-height:1.8;">
+            ${safeMessage}
+        </div>
+
+        <p style="font-size:14px;line-height:1.7;color:#9fb0c7;margin:0;">
+            Need more assistance? Reply directly to this email and our support
+            team will be happy to help.
+        </p>
+
+        <p style="font-size:14px;line-height:1.7;color:#dbeafe;margin:26px 0 0;">
+            Kind regards,<br>
+            <strong style="color:#ffffff;">forma.IT Support Team</strong>
+        </p>
+    </td>
+</tr>
+
+<!-- Landscape contact footer -->
+<tr>
+    <td style="background:#061225;border-top:1px solid #17355c;padding:26px 25px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <!-- Email -->
+                <td class="contact-column" width="25%" align="center" valign="top">
+                    <img
+                        src="https://img.icons8.com/ios-filled/50/60a5fa/new-post.png"
+                        width="25"
+                        height="25"
+                        alt="Email"
+                        style="display:block;margin:0 auto 10px;"
+                    >
+
+                    <div style="font-size:10px;font-weight:bold;color:#ffffff;text-transform:uppercase;margin-bottom:7px;">
+                        Email
+                    </div>
+
+                    <a
+                        href="mailto:support@formaitgroup.com"
+                        style="font-size:9px;color:#93c5fd;text-decoration:none;"
+                    >
+                        support@formaitgroup.com
+                    </a>
+
+                    <br>
+
+                    <a
+                        href="mailto:info@formaitgroup.com"
+                        style="font-size:9px;color:#94a3b8;text-decoration:none;"
+                    >
+                        info@formaitgroup.com
+                    </a>
+                </td>
+
+                <!-- Phone -->
+                <td class="contact-column" width="25%" align="center" valign="top">
+                    <img
+                        src="https://img.icons8.com/ios-filled/50/60a5fa/phone.png"
+                        width="25"
+                        height="25"
+                        alt="Phone"
+                        style="display:block;margin:0 auto 10px;"
+                    >
+
+                    <div style="font-size:10px;font-weight:bold;color:#ffffff;text-transform:uppercase;margin-bottom:7px;">
+                        Call us
+                    </div>
+
+                    <a
+                        href="tel:+256745860988"
+                        style="display:block;font-size:9px;color:#93c5fd;text-decoration:none;line-height:1.7;"
+                    >
+                        +256 745 860 988
+                    </a>
+
+                    <a
+                        href="tel:+256794616175"
+                        style="display:block;font-size:9px;color:#94a3b8;text-decoration:none;line-height:1.7;"
+                    >
+                        +256 794 616 175
+                    </a>
+                </td>
+
+                <!-- WhatsApp -->
+                <td class="contact-column" width="25%" align="center" valign="top">
+                    <img
+                        src="https://img.icons8.com/color/48/whatsapp--v1.png"
+                        width="27"
+                        height="27"
+                        alt="WhatsApp"
+                        style="display:block;margin:0 auto 8px;"
+                    >
+
+                    <div style="font-size:10px;font-weight:bold;color:#ffffff;text-transform:uppercase;margin-bottom:7px;">
+                        WhatsApp
+                    </div>
+
+                    <a
+                        href="https://wa.me/256794616175"
+                        style="font-size:9px;color:#4ade80;text-decoration:none;"
+                    >
+                        +256 794 616 175
+                    </a>
+                </td>
+
+                <!-- Location -->
+                <td class="contact-column" width="25%" align="center" valign="top">
+                    <img
+                        src="https://img.icons8.com/ios-filled/50/60a5fa/marker.png"
+                        width="25"
+                        height="25"
+                        alt="Location"
+                        style="display:block;margin:0 auto 10px;"
+                    >
+
+                    <div style="font-size:10px;font-weight:bold;color:#ffffff;text-transform:uppercase;margin-bottom:7px;">
+                        Office
+                    </div>
+
+                    <span style="font-size:9px;color:#94a3b8;">
+                        Kampala, Uganda
+                    </span>
+                </td>
+            </tr>
+        </table>
+    </td>
+</tr>
+
+<!-- Social media strip -->
+<tr>
+    <td align="center" style="background:#040c19;padding:18px 20px;border-top:1px solid #17355c;">
+        <span style="font-size:10px;color:#64748b;text-transform:uppercase;margin-right:18px;">
+            Follow forma.IT
+        </span>
+
+        <a
+            href="https://www.facebook.com/share/171GwhGJQ1/"
+            style="display:inline-block;margin:0 7px;text-decoration:none;"
         >
-            <h1 style="font-size:24px;line-height:1.3;margin:0 0 18px;color:#18181b;">
-                Hello ${safeName},
-            </h1>
-
-            <p style="font-size:15px;line-height:1.75;color:#52525b;margin:0 0 18px;">
-                Thank you for contacting FORMA.IT. Our team has reviewed
-                your enquiry and sent the following response:
-            </p>
-
-            <div style="margin:24px 0;padding:20px;background:#f8fafc;border-left:4px solid #2563eb;color:#27272a;font-size:15px;line-height:1.8;">
-                ${safeMessage}
-            </div>
-
-            <p style="font-size:14px;line-height:1.7;color:#52525b;margin:0;">
-                If you need further assistance, reply directly to this
-                email and our support team will help you.
-            </p>
-
-            <p style="font-size:14px;line-height:1.7;color:#3f3f46;margin:28px 0 0;">
-                Kind regards,<br>
-                <strong>FORMA.IT Support Team</strong>
-            </p>
-        </td>
-    </tr>
-
-    <!-- Quick actions -->
-    <tr>
-        <td style="border-top:1px solid #e4e4e7;">
-            <table
-                role="presentation"
-                width="100%"
-                cellspacing="0"
-                cellpadding="0"
-                border="0"
-                style="border-collapse:collapse;"
+            <img
+                src="https://img.icons8.com/color/48/facebook-new.png"
+                width="25"
+                height="25"
+                alt="Facebook"
+                style="display:block;border:0;"
             >
-                <tr>
+        </a>
 
-                    <td
-                        class="quick-column"
-                        width="33.33%"
-                        align="center"
-                        valign="top"
-                        style="padding:25px 12px;border-right:1px solid #e4e4e7;"
-                    >
-                        <div style="font-size:22px;margin-bottom:9px;">
-                            ↗
-                        </div>
-
-                        <div style="font-size:11px;font-weight:800;color:#18181b;text-transform:uppercase;">
-                            Visit our website
-                        </div>
-
-                        <a
-                            href="https://formaitgroup.com"
-                            style="display:inline-block;margin-top:8px;color:#2563eb;font-size:10px;font-weight:700;text-decoration:none;text-transform:uppercase;"
-                        >
-                            Explore FORMA.IT
-                        </a>
-                    </td>
-
-                    <td
-                        class="quick-column"
-                        width="33.33%"
-                        align="center"
-                        valign="top"
-                        style="padding:25px 12px;border-right:1px solid #e4e4e7;"
-                    >
-                        <div style="font-size:22px;margin-bottom:9px;">
-                            ✉
-                        </div>
-
-                        <div style="font-size:11px;font-weight:800;color:#18181b;text-transform:uppercase;">
-                            Email support
-                        </div>
-
-                        <a
-                            href="mailto:support@formaitgroup.com"
-                            style="display:inline-block;margin-top:8px;color:#2563eb;font-size:10px;font-weight:700;text-decoration:none;text-transform:uppercase;"
-                        >
-                            Contact support
-                        </a>
-                    </td>
-
-                    <td
-                        class="quick-column"
-                        width="33.33%"
-                        align="center"
-                        valign="top"
-                        style="padding:25px 12px;"
-                    >
-                        <div style="font-size:22px;margin-bottom:9px;">
-                            ◉
-                        </div>
-
-                        <div style="font-size:11px;font-weight:800;color:#18181b;text-transform:uppercase;">
-                            Chat on WhatsApp
-                        </div>
-
-                        <a
-                            href="https://wa.me/256794616175"
-                            style="display:inline-block;margin-top:8px;color:#2563eb;font-size:10px;font-weight:700;text-decoration:none;text-transform:uppercase;"
-                        >
-                            Start conversation
-                        </a>
-                    </td>
-
-                </tr>
-            </table>
-        </td>
-    </tr>
-
-    <!-- Social strip -->
-    <tr>
-        <td
-            align="center"
-            style="background:#050505;padding:18px 15px;"
+        <a
+            href="https://www.instagram.com/forma.itgroup?igsh=MWt6a3huamt3b3Ewcw=="
+            style="display:inline-block;margin:0 7px;text-decoration:none;"
         >
-            <a
-                href="https://www.facebook.com/share/171GwhGJQ1/"
-                style="display:inline-block;width:28px;height:28px;line-height:28px;margin:0 6px;border-radius:50%;background:#ffffff;color:#050505;font-size:12px;font-weight:800;text-decoration:none;text-align:center;"
+            <img
+                src="https://img.icons8.com/fluency/48/instagram-new.png"
+                width="25"
+                height="25"
+                alt="Instagram"
+                style="display:block;border:0;"
             >
-                f
-            </a>
+        </a>
 
-            <a
-                href="https://www.instagram.com/forma.itgroup?igsh=MWt6a3huamt3b3Ewcw=="
-                style="display:inline-block;width:28px;height:28px;line-height:28px;margin:0 6px;border-radius:50%;background:#ffffff;color:#050505;font-size:11px;font-weight:800;text-decoration:none;text-align:center;"
+        <a
+            href="https://x.com/Formaitgroup"
+            style="display:inline-block;margin:0 7px;text-decoration:none;"
+        >
+            <img
+                src="https://img.icons8.com/ios-filled/50/ffffff/twitterx--v2.png"
+                width="23"
+                height="23"
+                alt="X"
+                style="display:block;border:0;"
             >
-                ig
-            </a>
+        </a>
+    </td>
+</tr>
 
-            <a
-                href="https://x.com/Formaitgroup"
-                style="display:inline-block;width:28px;height:28px;line-height:28px;margin:0 6px;border-radius:50%;background:#ffffff;color:#050505;font-size:12px;font-weight:800;text-decoration:none;text-align:center;"
-            >
-                X
-            </a>
-        </td>
-    </tr>
+<!-- Legal footer -->
+<tr>
+    <td align="center" style="background:#020817;padding:14px 20px;color:#64748b;font-size:9px;">
+        <a
+            href="https://formaitgroup.com"
+            style="color:#93c5fd;text-decoration:none;margin-right:14px;"
+        >
+            Website
+        </a>
 
-    <!-- Contact blocks -->
-    <tr>
-        <td style="background:#ffffff;">
-            <table
-                role="presentation"
-                width="100%"
-                cellspacing="0"
-                cellpadding="0"
-                border="0"
-                style="border-collapse:collapse;"
-            >
-                <tr>
+        <a
+            href="mailto:info@formaitgroup.com"
+            style="color:#93c5fd;text-decoration:none;margin-right:14px;"
+        >
+            Official contact
+        </a>
 
-                    <td
-                        class="contact-column"
-                        width="25%"
-                        align="center"
-                        valign="top"
-                        style="padding:25px 10px;border-right:1px solid #e4e4e7;"
-                    >
-                        <div style="font-size:22px;color:#52525b;">
-                            ✉
-                        </div>
-
-                        <p style="font-size:10px;font-weight:800;text-transform:uppercase;margin:9px 0 5px;color:#18181b;">
-                            Support
-                        </p>
-
-                        <a
-                            href="mailto:support@formaitgroup.com"
-                            style="font-size:9px;color:#71717a;text-decoration:none;"
-                        >
-                            support@formaitgroup.com
-                        </a>
-                    </td>
-
-                    <td
-                        class="contact-column"
-                        width="25%"
-                        align="center"
-                        valign="top"
-                        style="padding:25px 10px;border-right:1px solid #e4e4e7;"
-                    >
-                        <div style="font-size:22px;color:#52525b;">
-                            ☎
-                        </div>
-
-                        <p style="font-size:10px;font-weight:800;text-transform:uppercase;margin:9px 0 5px;color:#18181b;">
-                            Call us
-                        </p>
-
-                        <a
-                            href="tel:+256745860988"
-                            style="display:block;font-size:9px;color:#71717a;text-decoration:none;line-height:1.6;"
-                        >
-                            +256 745 860 988
-                        </a>
-
-                        <a
-                            href="tel:+256794616175"
-                            style="display:block;font-size:9px;color:#71717a;text-decoration:none;line-height:1.6;"
-                        >
-                            +256 794 616 175
-                        </a>
-                    </td>
-
-                    <td
-                        class="contact-column"
-                        width="25%"
-                        align="center"
-                        valign="top"
-                        style="padding:25px 10px;border-right:1px solid #e4e4e7;"
-                    >
-                        <div style="font-size:22px;color:#52525b;">
-                            ●
-                        </div>
-
-                        <p style="font-size:10px;font-weight:800;text-transform:uppercase;margin:9px 0 5px;color:#18181b;">
-                            WhatsApp
-                        </p>
-
-                        <a
-                            href="https://wa.me/256794616175"
-                            style="font-size:9px;color:#71717a;text-decoration:none;"
-                        >
-                            +256 794 616 175
-                        </a>
-                    </td>
-
-                    <td
-                        class="contact-column"
-                        width="25%"
-                        align="center"
-                        valign="top"
-                        style="padding:25px 10px;"
-                    >
-                        <div style="font-size:22px;color:#52525b;">
-                            ◇
-                        </div>
-
-                        <p style="font-size:10px;font-weight:800;text-transform:uppercase;margin:9px 0 5px;color:#18181b;">
-                            Visit us
-                        </p>
-
-                        <span style="font-size:9px;color:#71717a;">
-                            Kampala, Uganda
-                        </span>
-                    </td>
-
-                </tr>
-            </table>
-        </td>
-    </tr>
+        <span>
+            © ${new Date().getFullYear()} forma.IT Group. All rights reserved.
+        </span>
+    </td>
+</tr>
 
     <!-- Legal footer -->
     <tr>
@@ -403,7 +365,7 @@ export async function sendMail({ name, email, message }) {
             </a>
 
             <span>
-                © ${new Date().getFullYear()} FORMA.IT Group. All rights reserved.
+                © ${new Date().getFullYear()} forma.IT Group. All rights reserved.
             </span>
         </td>
     </tr>
