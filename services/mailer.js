@@ -344,32 +344,6 @@ export async function sendMail({ name, email, message }) {
     </td>
 </tr>
 
-    <!-- Legal footer -->
-    <tr>
-        <td
-            align="center"
-            style="background:#3f3f46;padding:16px 20px;color:#d4d4d8;font-size:9px;"
-        >
-            <a
-                href="https://formaitgroup.com"
-                style="color:#ffffff;text-decoration:none;margin-right:15px;"
-            >
-                Website
-            </a>
-
-            <a
-                href="mailto:info@formaitgroup.com"
-                style="color:#ffffff;text-decoration:none;margin-right:15px;"
-            >
-                Official Contact
-            </a>
-
-            <span>
-                © ${new Date().getFullYear()} forma.IT Group. All rights reserved.
-            </span>
-        </td>
-    </tr>
-
 </table>
 
 </td>
