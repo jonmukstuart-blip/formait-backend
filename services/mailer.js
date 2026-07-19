@@ -158,7 +158,8 @@ export async function sendMail({ name, email, message }) {
 
         <p style="font-size:14px;line-height:1.7;color:#dbeafe;margin:26px 0 0;">
             Kind regards,<br>
-            <strong style="color:#ffffff;">forma.IT Support Team</strong>
+            <strong style="color:#ffffff;">forma.IT 
+            Support Team</strong>
         </p>
     </td>
 </tr>
