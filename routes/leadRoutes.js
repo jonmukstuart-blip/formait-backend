@@ -185,30 +185,31 @@ router.put("/:id", protect, async (req, res) => {
 // DELETE LEAD
 // ==========================================================================
 router.delete("/:id", protect, async (req, res) => {
-
     try {
+        const deletedLead = await Lead.findByIdAndDelete(req.params.id);
 
-        await Lead.findByIdAndDelete(req.params.id);
-
-        if (req.app.get("io")) {
-            req.app.get("io").emit("globalWorkspaceSyncRequest", {
-                action: "DATABASE_LEADS_SYNC",
-                tab: "leads"
+        if (!deletedLead) {
+            return res.status(404).json({
+                success: false,
+                error: "Lead not found"
             });
         }
 
-        res.json({
-            success: true
+        req.app.get("io")?.emit("globalWorkspaceSyncRequest", {
+            action: "DATABASE_LEADS_SYNC",
+            tab: "leads"
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Lead deleted successfully"
         });
 
     } catch (err) {
-
         res.status(500).json({
+            success: false,
             error: err.message
         });
-
     }
-
 });
-
 export default router;

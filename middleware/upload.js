@@ -1,29 +1,29 @@
 import multer from "multer";
-import fs from "fs";
-import path from "path";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 
-const uploadDir = path.resolve("uploads");
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
+});
 
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, {
-        recursive: true
-    });
-}
+const storage = new CloudinaryStorage({
+    cloudinary,
 
-const storage = multer.diskStorage({
-    destination(req, file, callback) {
-        callback(null, uploadDir);
-    },
-
-    filename(req, file, callback) {
-        const safeOriginalName = file.originalname
+    params: async (req, file) => {
+        const safeName = file.originalname
+            .replace(/\.[^/.]+$/, "")
             .replace(/\s+/g, "_")
-            .replace(/[^a-zA-Z0-9._-]/g, "");
+            .replace(/[^a-zA-Z0-9_-]/g, "");
 
-        const uniqueFilename =
-            `${Date.now()}-${Math.round(Math.random() * 1e9)}-${safeOriginalName}`;
-
-        callback(null, uniqueFilename);
+        return {
+            folder: "formait/testimonials",
+            resource_type: "auto",
+            public_id:
+                `${Date.now()}-${Math.round(Math.random() * 1e9)}-${safeName}`
+        };
     }
 });
 
@@ -33,14 +33,13 @@ const fileFilter = (req, file, callback) => {
         "image/png",
         "image/webp",
         "image/gif",
-        "application/pdf",
         "video/mp4",
         "video/webm"
     ];
 
     if (!allowedTypes.includes(file.mimetype)) {
         return callback(
-            new Error("This attachment file type is not allowed."),
+            new Error("Only JPG, PNG, WebP, GIF, MP4 and WebM files are allowed."),
             false
         );
     }
@@ -55,3 +54,5 @@ export const upload = multer({
         fileSize: 45 * 1024 * 1024
     }
 });
+
+export { cloudinary };

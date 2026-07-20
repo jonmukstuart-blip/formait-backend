@@ -81,7 +81,7 @@ router.post("/", upload.single("media"), async (req, res) => {
     testimonial: req.body.testimonial,
     rating: req.body.rating,
     status: "pending",
-    media: req.file ? req.file.filename : null
+    media: req.file ? req.file.path : null
 });
         res.json(testimonial);
 
