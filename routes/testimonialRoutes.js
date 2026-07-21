@@ -70,24 +70,78 @@ router.get("/by-project/:projectTitle", async (req, res) => {
 // ========================================================
 // CLIENT SUBMITS REVIEW
 // ========================================================
-router.post("/", upload.single("media"), async (req, res) => {
-    try {
-  const testimonial = await Testimonial.create({
-    projectId: req.body.projectId,
-    projectTitle: req.body.projectTitle,
-    clientName: req.body.clientName,
-    company: req.body.company,
-    position: req.body.position,
-    testimonial: req.body.testimonial,
-    rating: req.body.rating,
-    status: "pending",
-    media: req.file ? req.file.path : null
-});
-        res.json(testimonial);
+router.post("/", (req, res) => {
+    upload.single("media")(req, res, async uploadError => {
+        if (uploadError) {
+            console.error(
+                "[TESTIMONIAL UPLOAD ERROR]",
+                uploadError
+            );
 
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+            return res.status(400).json({
+                success: false,
+                error:
+                    uploadError.message ||
+                    "Media upload failed."
+            });
+        }
+
+        try {
+            const {
+                projectId,
+                projectTitle,
+                clientName,
+                company,
+                position,
+                testimonial,
+                rating
+            } = req.body;
+
+            if (
+                !projectId ||
+                !projectTitle ||
+                !clientName ||
+                !testimonial
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Project, client name and testimonial are required."
+                });
+            }
+
+            const createdTestimonial =
+                await Testimonial.create({
+                    projectId,
+                    projectTitle,
+                    clientName,
+                    company: company || "",
+                    position: position || "",
+                    testimonial,
+                    rating: Number(rating) || 5,
+                    status: "pending",
+                    media: req.file?.path || null
+                });
+
+            return res.status(201).json({
+                success: true,
+                data: createdTestimonial
+            });
+
+        } catch (error) {
+            console.error(
+                "[TESTIMONIAL DATABASE ERROR]",
+                error
+            );
+
+            return res.status(500).json({
+                success: false,
+                error:
+                    error.message ||
+                    "Testimonial submission failed."
+            });
+        }
+    });
 });
 
 router.post("/generate", (req, res) => {
