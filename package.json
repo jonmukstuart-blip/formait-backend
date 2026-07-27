@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node -r dotenv/config server.js",
     "dev": "nodemon -r dotenv/config server.js",
-    "tenant:create": "node scripts/createTenant.js"
+    "tenant:create": "node scripts/createTenant.js",
+    "tenant:assign-admin": "node scripts/assignTenantAdmin.js"
 },
   "keywords": [],
   "author": "",

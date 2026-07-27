@@ -42,6 +42,27 @@ const whatsappConversationSchema = new mongoose.Schema(
             default: "active"
         },
 
+        hasIntroduced: {
+    type: Boolean,
+    default: false
+},
+
+        isPinned: {
+    type: Boolean,
+    default: false
+},
+
+priority: {
+    type: String,
+    enum: ["normal", "high", "urgent"],
+    default: "normal"
+},
+
+assignedTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+},
         lastMessageAt: {
             type: Date,
             default: Date.now

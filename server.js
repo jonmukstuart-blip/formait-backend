@@ -18,6 +18,7 @@ import mongoose from "mongoose";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import whatsappRoutes from "./routes/whatsappRoutes.js";
+import whatsappAdminRoutes from "./routes/whatsappAdminRoutes.js";
 
 // Core Database Models Mappings
 import Lead from "./models/Lead.js"; 
@@ -94,6 +95,7 @@ app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/client", clientRoutes);
 app.use("/api/whatsapp", whatsappRoutes);
+app.use("/api/admin/whatsapp", whatsappAdminRoutes);
 
 // Direct target gateway for your AI Agent Panel executions
 app.use("/api/ai", aiAgentRouter); 

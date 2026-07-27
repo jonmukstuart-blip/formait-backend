@@ -91,12 +91,27 @@ async function reply({
     recipient,
     text
 }) {
+
+    let finalText = text;
+
+if (!conversation.hasIntroduced) {
+    const assistantName =
+        tenant.chatbot?.name || "Virtual Assistant";
+
+    finalText = `Hello 👋 I’m ${assistantName}, the virtual assistant for ${tenant.businessName}. You can ask to speak with a human at any time.
+
+${text}`;
+
+    conversation.hasIntroduced = true;
+    await conversation.save();
+}
+
     await wait(getNaturalDelay(tenant));
 
     const result = await sendWhatsAppText({
         tenant,
         recipient,
-        text
+        text: finalText
     });
 
     await saveMessage({
@@ -106,7 +121,7 @@ async function reply({
             result?.messages?.[0]?.id || "",
         direction: "outgoing",
         senderType: "assistant",
-        text,
+        text: finalText,
         status: "sent"
     });
 }
@@ -291,6 +306,21 @@ Type “menu” if you need anything else.`
 
         return;
     }
+
+    if (process.env.AI_ENABLED !== "true") {
+    await reply({
+        tenant,
+        conversation,
+        recipient: incoming.whatsappUserId,
+        text: `I didn’t quite understand that.
+
+${buildMainMenu(tenant)}
+
+You can also type “human” at any time to speak with our team.`
+    });
+
+    return;
+}
 
 try {
     const intelligentReply =
