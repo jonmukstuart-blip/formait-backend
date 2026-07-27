@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 
 const leadSchema = new mongoose.Schema({
+
+    tenantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Tenant",
+    required: true,
+    index: true
+},
     name: {
         type: String,
         required: true
@@ -64,5 +71,10 @@ const leadSchema = new mongoose.Schema({
     }
 
 }, { timestamps: true });
+
+leadSchema.index({
+    tenantId: 1,
+    createdAt: -1
+});
 
 export default mongoose.model("Lead", leadSchema);

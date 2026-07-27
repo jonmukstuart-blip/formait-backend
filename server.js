@@ -17,6 +17,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import whatsappRoutes from "./routes/whatsappRoutes.js";
 
 // Core Database Models Mappings
 import Lead from "./models/Lead.js"; 
@@ -67,7 +68,11 @@ app.use(cors({
     credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({
+    verify: (req, res, buffer) => {
+        req.rawBody = buffer;
+    }
+}));
 
 // Pass WebSocket Context Layer down to Express Router handlers
 app.use((req, res, next) => {
@@ -88,6 +93,7 @@ app.use("/api/admin/testimonials", testimonialAdminRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/client", clientRoutes);
+app.use("/api/whatsapp", whatsappRoutes);
 
 // Direct target gateway for your AI Agent Panel executions
 app.use("/api/ai", aiAgentRouter); 

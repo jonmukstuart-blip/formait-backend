@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
-  "scripts": {
+"scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node -r dotenv/config server.js",
-    "dev": "nodemon -r dotenv/config server.js"
-  },
+    "dev": "nodemon -r dotenv/config server.js",
+    "tenant:create": "node scripts/createTenant.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",

@@ -1,0 +1,68 @@
+import mongoose from "mongoose";
+
+const whatsappConversationSchema = new mongoose.Schema(
+    {
+        tenantId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Tenant",
+            required: true,
+            index: true
+        },
+
+        whatsappUserId: {
+            type: String,
+            required: true,
+            trim: true
+        },
+
+        customerName: {
+            type: String,
+            default: "WhatsApp Customer",
+            trim: true
+        },
+
+        state: {
+            type: String,
+            default: "main_menu"
+        },
+
+        collectedData: {
+            type: mongoose.Schema.Types.Mixed,
+            default: {}
+        },
+
+        humanHandover: {
+            type: Boolean,
+            default: false
+        },
+
+        status: {
+            type: String,
+            enum: ["active", "waiting_for_human", "closed"],
+            default: "active"
+        },
+
+        lastMessageAt: {
+            type: Date,
+            default: Date.now
+        }
+    },
+    {
+        timestamps: true
+    }
+);
+
+whatsappConversationSchema.index(
+    {
+        tenantId: 1,
+        whatsappUserId: 1
+    },
+    {
+        unique: true
+    }
+);
+
+export default mongoose.model(
+    "WhatsAppConversation",
+    whatsappConversationSchema
+);
