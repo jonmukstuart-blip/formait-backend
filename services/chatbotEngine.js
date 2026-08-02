@@ -45,19 +45,8 @@ function getNaturalDelay(tenant) {
     ) + minimum;
 }
 
-function buildMainMenu(tenant) {
-    const assistantName =
-        tenant.chatbot?.name || "Virtual Assistant";
-
-    const disclosure =
-        tenant.chatbot?.disclosure ||
-        "I’m a virtual assistant. You can ask to speak with a human at any time.";
-
-    return `Hello 👋 I’m ${assistantName}, the virtual assistant for ${tenant.businessName}.
-
-${disclosure}
-
-How may I help you?
+function buildMainMenu() {
+    return `How may I help you?
 
 1. Explore our services
 2. View pricing
@@ -254,18 +243,40 @@ Please tell me the service you are interested in, or type “human” to speak w
         return;
     }
 
-    if (normalized === "2") {
-        await reply({
-            tenant,
-            conversation,
-            recipient: incoming.whatsappUserId,
-            text: `Pricing depends on the service and what your business needs.
+if (normalized === "2") {
+    conversation.state = "collecting_pricing_request";
+    await conversation.save();
+
+    await reply({
+        tenant,
+        conversation,
+        recipient: incoming.whatsappUserId,
+        text: `Pricing depends on the service and what your business needs.
 
 Tell me briefly what you would like built, and I’ll help you request an accurate quotation.`
-        });
+    });
 
-        return;
-    }
+    return;
+}
+
+if (conversation.state === "collecting_pricing_request") {
+    conversation.collectedData = {
+        ...conversation.collectedData,
+        requestedService: incoming.text
+    };
+
+    conversation.state = "collecting_quotation";
+    await conversation.save();
+
+    await reply({
+        tenant,
+        conversation,
+        recipient: incoming.whatsappUserId,
+        text: `A web application sounds good. Please share the main features you need, your preferred timeline and approximate budget.`
+    });
+
+    return;
+}
 
     if (normalized === "3") {
         conversation.state = "collecting_quotation";
