@@ -8,7 +8,10 @@
     "start": "node -r dotenv/config server.js",
     "dev": "nodemon -r dotenv/config server.js",
     "tenant:create": "node scripts/createTenant.js",
-    "tenant:assign-admin": "node scripts/assignTenantAdmin.js"
+    "tenant:assign-admin": "node scripts/assignTenantAdmin.js",
+    "owner:promote": "node scripts/promoteOwner.js",
+    "tenant:memberships": "node scripts/createTenantMemberships.js",
+    "whatsapp:indexes": "node scripts/fixWhatsAppConversationIndexes.js"
 },
   "keywords": [],
   "author": "",
