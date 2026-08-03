@@ -74,7 +74,13 @@ async function reply({
 
     let finalText = text;
 
-if (!conversation.hasIntroduced) {
+const disclosureExpired =
+    !conversation.disclosureSentAt ||
+    Date.now() -
+        new Date(conversation.disclosureSentAt).getTime() >=
+        24 * 60 * 60 * 1000;
+
+if (disclosureExpired) {
     const assistantName =
         tenant.chatbot?.name || "FORMA";
 
@@ -84,11 +90,13 @@ if (!conversation.hasIntroduced) {
             ? ` ${conversation.customerName}`
             : "";
 
-    finalText = `Hi${customerName} 👋 I’m ${assistantName}, the virtual assistant for ${tenant.businessName}. You can ask for a human team member whenever you need one.
+    finalText = `Hi${customerName} 👋 I’m ${assistantName}, the virtual assistant for ${tenant.businessName}. You can ask to speak with a human team member whenever you need one.
 
 ${text}`;
 
     conversation.hasIntroduced = true;
+    conversation.disclosureSentAt = new Date();
+
     await conversation.save();
 }
 
@@ -120,7 +128,8 @@ await wait(
 
 export async function processIncomingWhatsAppMessage({
     payload,
-    tenant
+    tenant,
+    io
 }) {
     const incoming = extractIncomingMessage(payload);
 
@@ -185,6 +194,8 @@ export async function processIncomingWhatsAppMessage({
 
 const wantsHuman =
     normalized === "4" ||
+    normalized === "human" ||
+    normalized === "agent" ||
     [
         "speak to a human",
         "talk to a human",
@@ -200,6 +211,25 @@ const wantsHuman =
         conversation.status = "waiting_for_human";
 
         await conversation.save();
+
+        const notificationPayload = {
+    conversationId: conversation._id,
+    customerName: incoming.customerName,
+    phone: incoming.whatsappUserId,
+    message: incoming.text
+};
+
+io?.to(`tenant:${tenant._id.toString()}`)
+    .emit(
+        "whatsappHumanRequested",
+        notificationPayload
+    );
+
+io?.to(`tenant:${tenant._id.toString()}`)
+    .emit("globalWorkspaceSyncRequest", {
+        action: "DATABASE_WHATSAPP_SYNC",
+        tab: "whatsapp inbox"
+    });
 
         await Lead.create({
             tenantId: tenant._id,

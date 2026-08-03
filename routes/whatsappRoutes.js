@@ -23,27 +23,14 @@ router.get("/webhook", (req, res) => {
 
 // Incoming WhatsApp messages
 router.post("/webhook", (req, res) => {
-    const payload = req.body;
+    const io = req.app.get("io");
 
-    console.log("[WHATSAPP] Incoming POST webhook received");
-
-    const phoneNumberId =
-        payload?.entry?.[0]?.changes?.[0]?.value?.metadata
-            ?.phone_number_id;
-
-    const message =
-        payload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-
-    console.log("[WHATSAPP] Phone Number ID:", phoneNumberId || "missing");
-    console.log("[WHATSAPP] Event type:", message ? "message" : "status/update");
-
-    // Meta requires an immediate success response.
     res.sendStatus(200);
 
-    void handleWebhook(payload);
+    void handleWebhook(req.body, io);
 });
 
-async function handleWebhook(payload) {
+async function handleWebhook(payload, io) {
     try {
         const tenant =
             await resolveTenantFromWhatsAppPayload(payload);
@@ -52,10 +39,11 @@ async function handleWebhook(payload) {
             `[WHATSAPP] Message received for ${tenant.businessName}`
         );
 
-        await processIncomingWhatsAppMessage({
-            payload,
-            tenant
-        });
+await processIncomingWhatsAppMessage({
+    payload,
+    tenant,
+    io
+});
 
     } catch (error) {
         console.error(
