@@ -239,9 +239,9 @@ WhatsAppConversation.watch([], {
 }
 const startServer = async () => {
     try {
-const connected = await connectDB();
+await connectDB();
 
-if (!connected) {
+if (mongoose.connection.readyState !== 1) {
     throw new Error(
         "MongoDB connection failed. Server startup cancelled."
     );
