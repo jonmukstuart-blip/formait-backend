@@ -45,15 +45,6 @@ function getNaturalDelay(tenant) {
     ) + minimum;
 }
 
-function buildMainMenu() {
-    return `How may I help you?
-
-1. Explore our services
-2. View pricing
-3. Request a quotation
-4. Speak with our team`;
-}
-
 async function saveMessage({
     tenant,
     conversation,
@@ -85,9 +76,15 @@ async function reply({
 
 if (!conversation.hasIntroduced) {
     const assistantName =
-        tenant.chatbot?.name || "Virtual Assistant";
+        tenant.chatbot?.name || "FORMA";
 
-    finalText = `Hello 👋 I’m ${assistantName}, the virtual assistant for ${tenant.businessName}. You can ask to speak with a human at any time.
+    const customerName =
+        conversation.customerName &&
+        conversation.customerName !== "WhatsApp Customer"
+            ? ` ${conversation.customerName}`
+            : "";
+
+    finalText = `Hi${customerName} 👋 I’m ${assistantName}, the virtual assistant for ${tenant.businessName}. You can ask for a human team member whenever you need one.
 
 ${text}`;
 
@@ -95,7 +92,13 @@ ${text}`;
     await conversation.save();
 }
 
-    await wait(getNaturalDelay(tenant));
+    const targetReplyTime =
+    conversation.$locals.replyTargetTime ||
+    Date.now();
+
+await wait(
+    Math.max(0, targetReplyTime - Date.now())
+);
 
     const result = await sendWhatsAppText({
         tenant,
@@ -159,6 +162,9 @@ export async function processIncomingWhatsAppMessage({
             }
         );
 
+         conversation.$locals.replyTargetTime =
+         Date.now() + getNaturalDelay(tenant);
+
     await saveMessage({
         tenant,
         conversation,
@@ -177,15 +183,17 @@ export async function processIncomingWhatsAppMessage({
     const normalized =
         incoming.text.trim().toLowerCase();
 
-    const wantsHuman = [
-        "4",
-        "human",
-        "person",
-        "agent",
-        "support",
+const wantsHuman =
+    normalized === "4" ||
+    [
+        "speak to a human",
+        "talk to a human",
+        "human agent",
+        "real person",
         "team member",
-        "real person"
-    ].some(keyword => normalized.includes(keyword));
+        "speak to someone",
+        "talk to someone"
+    ].some(phrase => normalized.includes(phrase));
 
     if (wantsHuman) {
         conversation.humanHandover = true;
@@ -213,121 +221,12 @@ export async function processIncomingWhatsAppMessage({
         return;
     }
 
-    if (
-        normalized === "hello" ||
-        normalized === "hi" ||
-        normalized === "hey" ||
-        normalized === "menu" ||
-        normalized === "start"
-    ) {
-        await reply({
-            tenant,
-            conversation,
-            recipient: incoming.whatsappUserId,
-            text: buildMainMenu(tenant)
-        });
-
-        return;
-    }
-
-    if (normalized === "1") {
-        await reply({
-            tenant,
-            conversation,
-            recipient: incoming.whatsappUserId,
-            text: `Here are the services offered by ${tenant.businessName}.
-
-Please tell me the service you are interested in, or type “human” to speak with our team.`
-        });
-
-        return;
-    }
-
-if (normalized === "2") {
-    conversation.state = "collecting_pricing_request";
-    await conversation.save();
-
+if (process.env.AI_ENABLED !== "true") {
     await reply({
         tenant,
         conversation,
         recipient: incoming.whatsappUserId,
-        text: `Pricing depends on the service and what your business needs.
-
-Tell me briefly what you would like built, and I’ll help you request an accurate quotation.`
-    });
-
-    return;
-}
-
-if (conversation.state === "collecting_pricing_request") {
-    conversation.collectedData = {
-        ...conversation.collectedData,
-        requestedService: incoming.text
-    };
-
-    conversation.state = "collecting_quotation";
-    await conversation.save();
-
-    await reply({
-        tenant,
-        conversation,
-        recipient: incoming.whatsappUserId,
-        text: `A web application sounds good. Please share the main features you need, your preferred timeline and approximate budget.`
-    });
-
-    return;
-}
-
-    if (normalized === "3") {
-        conversation.state = "collecting_quotation";
-        await conversation.save();
-
-        await reply({
-            tenant,
-            conversation,
-            recipient: incoming.whatsappUserId,
-            text: `Great. Please briefly describe what you need, your preferred timeline and your approximate budget.`
-        });
-
-        return;
-    }
-
-    if (conversation.state === "collecting_quotation") {
-        await Lead.create({
-            tenantId: tenant._id,
-            name: incoming.customerName,
-            phone: incoming.whatsappUserId,
-            message: incoming.text,
-            details: "Quotation requested through WhatsApp",
-            source: "WhatsApp Chatbot",
-            status: "new"
-        });
-
-        conversation.state = "main_menu";
-        await conversation.save();
-
-        await reply({
-            tenant,
-            conversation,
-            recipient: incoming.whatsappUserId,
-            text: `Thank you. Your quotation request has been shared with the ${tenant.businessName} team. They will contact you shortly.
-
-Type “menu” if you need anything else.`
-        });
-
-        return;
-    }
-
-    if (process.env.AI_ENABLED !== "true") {
-    await reply({
-        tenant,
-        conversation,
-        recipient: incoming.whatsappUserId,
-        text: `I didn’t quite understand that.
-
-${buildMainMenu(tenant)}
-
-You can also type “human” at any time to speak with our team.`
+        text: `I’m unable to answer automatically right now. Would you like me to connect you with our team?`
     });
 
     return;
@@ -358,9 +257,6 @@ try {
         tenant,
         conversation,
         recipient: incoming.whatsappUserId,
-        text: `I’m having a little trouble answering that right now.
-
-Please type “human” to speak with our team, or type “menu” to see the available options.`
-    });
+        text: `Sorry, I’m having trouble checking that just now. Would you like me to connect you with someone from our team?` });
 }
 }

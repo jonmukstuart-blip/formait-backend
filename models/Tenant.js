@@ -78,6 +78,11 @@ const tenantSchema = new mongoose.Schema(
             }
         },
 
+        knowledgeUrls: {
+    type: [String],
+    default: []
+},
+
         status: {
             type: String,
             enum: ["active", "suspended"],
