@@ -19,6 +19,10 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import whatsappRoutes from "./routes/whatsappRoutes.js";
 import whatsappAdminRoutes from "./routes/whatsappAdminRoutes.js";
+import jwt from "jsonwebtoken";
+import User from "./models/User.js";
+import WhatsAppConversation from "./models/WhatsAppConversation.js";
+import WhatsAppMessage from "./models/WhatsAppMessage.js";
 
 // Core Database Models Mappings
 import Lead from "./models/Lead.js"; 
@@ -52,6 +56,40 @@ export const io = new Server(httpServer, {
     }
 });
 app.set("io", io);
+
+// Connect authenticated administrators to their business room
+io.on("connection", socket => {
+    socket.on("joinTenantRoom", async token => {
+        try {
+            if (!token) return;
+
+            const decoded = jwt.verify(
+                token,
+                process.env.JWT_SECRET
+            );
+
+            const user = await User.findById(decoded.id)
+                .select("tenantId");
+
+            if (!user?.tenantId) return;
+
+            const roomName = `tenant:${user.tenantId}`;
+
+            socket.join(roomName);
+
+            console.log(
+                `[SOCKET] Administrator joined ${roomName}`
+            );
+
+        } catch (error) {
+            console.error(
+                "[SOCKET AUTH ERROR]",
+                error.message
+            );
+        }
+    });
+});
+
 app.get("/", (req, res) => {
   res.send("FORMA.IT API is running 🚀");
 });
@@ -133,7 +171,64 @@ function initDatabaseChangeStreams(ioInstance) {
     Message.watch([], { fullDocument: 'updateLookup' }).on("change", (change) => {
         debounceWorkspaceSync("messages", { action: "DATABASE_MESSAGES_SYNC", tab: "messages" });
     });
+// WhatsApp messages: refresh the correct business inbox
+WhatsAppMessage.watch([], {
+    fullDocument: "updateLookup"
+}).on("change", change => {
+    const tenantId =
+        change.fullDocument?.tenantId?.toString();
 
+    if (!tenantId) return;
+
+    ioInstance
+        .to(`tenant:${tenantId}`)
+        .emit("globalWorkspaceSyncRequest", {
+            action: "DATABASE_WHATSAPP_SYNC",
+            tab: "whatsapp inbox"
+        });
+});
+
+// WhatsApp conversations: detect human handover requests
+WhatsAppConversation.watch([], {
+    fullDocument: "updateLookup"
+}).on("change", change => {
+    const conversation = change.fullDocument;
+    const tenantId = conversation?.tenantId?.toString();
+
+    if (!tenantId) return;
+
+    ioInstance
+        .to(`tenant:${tenantId}`)
+        .emit("globalWorkspaceSyncRequest", {
+            action: "DATABASE_WHATSAPP_SYNC",
+            tab: "whatsapp inbox"
+        });
+
+    const requestedHuman =
+        change.operationType === "update" &&
+        change.updateDescription?.updatedFields?.status ===
+            "waiting_for_human";
+
+    if (requestedHuman) {
+        ioInstance
+            .to(`tenant:${tenantId}`)
+            .emit("globalWorkspaceSyncRequest", {
+                action: "WHATSAPP_HUMAN_REQUEST",
+                tab: "whatsapp inbox",
+                payload: {
+                    name:
+                        conversation.customerName ||
+                        "WhatsApp Customer",
+
+                    message:
+                        "This customer has requested to speak with a human team member.",
+
+                    email:
+                        `+${conversation.whatsappUserId}`
+                }
+            });
+    }
+});
 
   Activity.watch([], { fullDocument: "updateLookup" }).on("change", () => {
     debounceWorkspaceSync("logs", {
@@ -144,9 +239,15 @@ function initDatabaseChangeStreams(ioInstance) {
 }
 const startServer = async () => {
     try {
-        await connectDB();
-        
-        const PORT = process.env.PORT || 5000;
+const connected = await connectDB();
+
+if (!connected) {
+    throw new Error(
+        "MongoDB connection failed. Server startup cancelled."
+    );
+}
+
+const PORT = process.env.PORT || 5000;
         httpServer.listen(PORT, () => {
             console.log(`🚀 [ENGINE LIVE] Master Node operational on port ${PORT}`);
             initDatabaseChangeStreams(io); // Safely trigger after db topology builds completely
