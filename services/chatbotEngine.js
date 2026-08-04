@@ -45,6 +45,22 @@ function getNaturalDelay(tenant) {
     ) + minimum;
 }
 
+function buildMainMenu() {
+    return `What would you like help with?
+
+1. Website development
+2. Custom software
+3. Business automation
+4. AI integration
+5. WhatsApp chatbot
+6. Mobile app development
+7. UI/UX and branding
+8. Pricing or quotation
+9. Speak with our team
+
+Reply with a number or simply describe what you need.`;
+}
+
 async function saveMessage({
     tenant,
     conversation,
@@ -102,7 +118,9 @@ async function reply({
 
         finalText = `Hi 👋 I’m ${assistantName}, the virtual assistant for ${tenant.businessName}. You can request a human team member whenever you need one.
 
-${text}`;
+${text}
+
+${buildMainMenu()}`;
     }
 
     const targetReplyTime =
@@ -197,8 +215,23 @@ export async function processIncomingWhatsAppMessage({
     const normalized =
         incoming.text.trim().toLowerCase();
 
+        if (
+    normalized === "menu" ||
+    normalized === "services" ||
+    normalized === "options"
+) {
+    await reply({
+        tenant,
+        conversation,
+        recipient: incoming.whatsappUserId,
+        text: buildMainMenu()
+    });
+
+    return;
+}
+
 const wantsHuman =
-    normalized === "4" ||
+    normalized === "9" ||
     normalized === "human" ||
     normalized === "agent" ||
     [
