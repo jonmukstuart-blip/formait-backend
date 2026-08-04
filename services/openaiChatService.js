@@ -1,6 +1,73 @@
 import { GoogleGenAI } from "@google/genai";
 import WhatsAppMessage from "../models/WhatsAppMessage.js";
 
+function parseStructuredReply(rawOutput) {
+    const text = String(rawOutput || "").trim();
+    const candidates = [];
+
+    let start = -1;
+    let depth = 0;
+    let insideString = false;
+    let escaped = false;
+
+    for (let index = 0; index < text.length; index++) {
+        const character = text[index];
+
+        if (insideString) {
+            if (escaped) {
+                escaped = false;
+            } else if (character === "\\") {
+                escaped = true;
+            } else if (character === '"') {
+                insideString = false;
+            }
+
+            continue;
+        }
+
+        if (character === '"') {
+            insideString = true;
+        } else if (character === "{") {
+            if (depth === 0) start = index;
+            depth++;
+        } else if (character === "}") {
+            depth--;
+
+            if (depth === 0 && start !== -1) {
+                candidates.push(text.slice(start, index + 1));
+                start = -1;
+            }
+        }
+    }
+
+    for (const candidate of candidates.reverse()) {
+        try {
+            const parsed = JSON.parse(candidate);
+
+            if (
+                typeof parsed.reply === "string" &&
+                parsed.reply.trim()
+            ) {
+                return {
+                    reply: parsed.reply.trim(),
+                    shouldPinSummary:
+                        parsed.shouldPinSummary === true,
+                    summary:
+                        typeof parsed.summary === "string"
+                            ? parsed.summary.trim()
+                            : ""
+                };
+            }
+        } catch {
+            // Try the preceding JSON object.
+        }
+    }
+
+    throw new Error(
+        "Gemini did not return a valid structured chatbot response"
+    );
+}
+
 function getKnowledgeUrls(tenant) {
     const tenantUrls =
         tenant.chatbot?.knowledgeUrls || [];
@@ -139,11 +206,11 @@ if (knowledgeUrls.length) {
     ];
 }
 
-const interaction =
-    await ai.interactions.create(request);
-
-const rawOutput =
-    interaction.output_text?.trim();
+return {
+    reply: interaction.output_text,
+    shouldPinSummary: false,
+    summary: ""
+};
 
 if (!rawOutput) {
     throw new Error(
