@@ -71,34 +71,39 @@ async function reply({
     recipient,
     text
 }) {
-
     let finalText = text;
 
-const disclosureExpired =
-    !conversation.disclosureSentAt ||
-    Date.now() -
-        new Date(conversation.disclosureSentAt).getTime() >=
-        24 * 60 * 60 * 1000;
+    const hasPreviousReply = await WhatsAppMessage.exists({
+        tenantId: tenant._id,
+        conversationId: conversation._id,
+        direction: "outgoing"
+    });
 
-if (disclosureExpired) {
-    const assistantName =
-        tenant.chatbot?.name || "FORMA";
+    const introductionClaim =
+        await WhatsAppConversation.updateOne(
+            {
+                _id: conversation._id,
+                tenantId: tenant._id,
+                hasIntroduced: { $ne: true }
+            },
+            {
+                $set: {
+                    hasIntroduced: true
+                }
+            }
+        );
 
-    const customerName =
-        conversation.customerName &&
-        conversation.customerName !== "WhatsApp Customer"
-            ? ` ${conversation.customerName}`
-            : "";
+    if (
+        !hasPreviousReply &&
+        introductionClaim.modifiedCount === 1
+    ) {
+        const assistantName =
+            tenant.chatbot?.name || "FORMA";
 
-    finalText = `Hi${customerName} 👋 I’m ${assistantName}, the virtual assistant for ${tenant.businessName}. You can ask to speak with a human team member whenever you need one.
+        finalText = `Hi 👋 I’m ${assistantName}, the virtual assistant for ${tenant.businessName}. You can request a human team member whenever you need one.
 
 ${text}`;
-
-    conversation.hasIntroduced = true;
-    conversation.disclosureSentAt = new Date();
-
-    await conversation.save();
-}
+    }
 
     const targetReplyTime =
     conversation.$locals.replyTargetTime ||
@@ -263,19 +268,38 @@ if (process.env.AI_ENABLED !== "true") {
 }
 
 try {
-    const intelligentReply =
-        await generateBusinessReply({
-            tenant,
-            conversation,
-            customerMessage: incoming.text
-        });
-
-    await reply({
+const aiResult =
+    await generateBusinessReply({
         tenant,
         conversation,
-        recipient: incoming.whatsappUserId,
-        text: intelligentReply
+        customerMessage: incoming.text
     });
+
+if (
+    aiResult.shouldPinSummary &&
+    aiResult.summary
+) {
+    await WhatsAppConversation.findOneAndUpdate(
+        {
+            _id: conversation._id,
+            tenantId: tenant._id
+        },
+        {
+            $set: {
+                isPinned: true,
+                pinnedSummary: aiResult.summary,
+                summaryUpdatedAt: new Date()
+            }
+        }
+    );
+}
+
+await reply({
+    tenant,
+    conversation,
+    recipient: incoming.whatsappUserId,
+    text: aiResult.reply
+});
 
 } catch (error) {
     console.error(

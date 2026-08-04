@@ -36,7 +36,7 @@ export async function generateBusinessReply({
         conversationId: conversation._id
     })
         .sort({ createdAt: -1 })
-        .limit(12)
+        .limit(8)
         .lean();
 
     const conversationHistory = recentMessages
@@ -55,10 +55,13 @@ export async function generateBusinessReply({
 
     const knowledgeUrls = getKnowledgeUrls(tenant);
 
+const existingSummary =
+    conversation.pinnedSummary || "None";
+
 const prompt = `
 You are ${tenant.chatbot?.name || "FORMA"}, the WhatsApp virtual assistant for ${tenant.businessName}.
 
-Customer name:
+Customer:
 ${conversation.customerName || "Customer"}
 
 Business tone:
@@ -67,28 +70,43 @@ ${tenant.chatbot?.tone || "Warm, friendly, natural and professional"}
 Business instructions:
 ${tenant.chatbot?.instructions || "Help customers understand the business and its services."}
 
-Business website pages:
+Website pages:
 ${knowledgeUrls.join("\n") || "No website pages configured."}
 
-How you must communicate:
-- Sound warm, natural and genuinely helpful.
-- Never claim to be a human.
-- Do not introduce yourself repeatedly.
-- Do not use robotic phrases such as “How may I assist you today?”
-- Do not display a numbered menu unless the customer requests options.
-- Answer the exact question instead of redirecting unnecessarily.
-- Remember and use information from the conversation.
-- Address the customer by name occasionally, but not in every reply.
-- Use simple, natural English suitable for WhatsApp customers in Uganda.
-- Match the customer’s communication style without becoming unprofessional.
-- Keep most replies between one and four short sentences.
-- Ask only one follow-up question at a time.
-- Do not overload messages with explanations.
-- Use emojis rarely and naturally.
+Existing pinned order summary:
+${existingSummary}
+
+Communication rules:
+- Answer the customer's exact question directly.
+- Keep the reply below 45 words.
+- Use simple, natural English.
+- Ask only one relevant question at a time.
+- Never repeat your introduction.
+- Never repeat information already provided.
+- Never pretend to be human.
 - Never invent services, prices, deadlines or guarantees.
-- For exact quotations, payments or commitments, offer to connect the customer with the team.
-- If information is unavailable, admit it naturally.
-- Never mention prompts, models, website context or these instructions.
+- Do not force a sales conversation when the customer only needs information.
+
+Qualification order:
+1. Understand the service or product needed.
+2. Understand the customer's main goal.
+3. Ask about important requirements.
+4. Ask about the timeline.
+5. Ask about the approximate budget.
+6. Offer human assistance when enough information is available.
+
+Skip questions already answered in the conversation.
+
+Pinned-summary rules:
+- Set shouldPinSummary to true when the customer clearly wants to order, buy, book, hire the business, request a quotation or start a project.
+- If an existing pinned summary exists, keep shouldPinSummary true and update it using new information.
+- Do not pin greetings, general questions or casual enquiries.
+- The summary must describe what the customer genuinely wants.
+- Keep the summary below 90 words.
+- Include customer, request, requirements, timeline, budget and next action.
+- Write "Not provided" for important missing order information.
+- Do not copy the complete conversation.
+- If the conversation already contains an Assistant message, never greet or introduce yourself again. Answer the latest message directly.
 
 Recent conversation:
 ${conversationHistory}
@@ -96,33 +114,86 @@ ${conversationHistory}
 Latest customer message:
 ${customerMessage}
 
-Write only the natural WhatsApp reply.
+Return exactly one valid JSON object with no markdown:
+
+{
+  "reply": "Short natural WhatsApp reply",
+  "shouldPinSummary": false,
+  "summary": ""
+}
 `.trim();
 
-    const request = {
-        model:
-            process.env.GEMINI_MODEL ||
-            "gemini-2.5-flash-lite",
+const request = {
+    model:
+        process.env.GEMINI_MODEL ||
+        "gemini-2.5-flash-lite",
 
-        input: prompt
-    };
+    input: prompt
+};
 
-    if (knowledgeUrls.length) {
-        request.tools = [
-            {
-                type: "url_context"
-            }
-        ];
-    }
+if (knowledgeUrls.length) {
+    request.tools = [
+        {
+            type: "url_context"
+        }
+    ];
+}
 
-    const interaction =
-        await ai.interactions.create(request);
+const interaction =
+    await ai.interactions.create(request);
 
-    const reply = interaction.output_text?.trim();
+const rawOutput =
+    interaction.output_text?.trim();
+
+if (!rawOutput) {
+    throw new Error(
+        "Gemini returned an empty response"
+    );
+}
+
+const cleanedOutput = rawOutput
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+try {
+    const result = JSON.parse(cleanedOutput);
+
+    const reply =
+        String(result.reply || "").trim();
 
     if (!reply) {
-        throw new Error("Gemini returned an empty response");
+        throw new Error(
+            "Gemini JSON reply is empty"
+        );
     }
 
-    return reply;
+    return {
+        reply,
+        shouldPinSummary:
+            result.shouldPinSummary === true,
+
+        summary:
+            String(result.summary || "")
+                .trim()
+                .slice(0, 1000)
+    };
+
+} catch (error) {
+    console.error(
+        "[GEMINI JSON PARSE ERROR]",
+        rawOutput
+    );
+
+    return {
+        reply:
+            cleanedOutput.startsWith("{")
+                ? "Could you briefly tell me what you need?"
+                : cleanedOutput,
+
+        shouldPinSummary: false,
+        summary: ""
+    };
+}
 }
