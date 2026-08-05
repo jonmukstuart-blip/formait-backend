@@ -206,11 +206,11 @@ if (knowledgeUrls.length) {
     ];
 }
 
-return {
-    reply: interaction.output_text,
-    shouldPinSummary: false,
-    summary: ""
-};
+const interaction =
+    await ai.interactions.create(request);
+
+const rawOutput =
+    interaction.output_text?.trim();
 
 if (!rawOutput) {
     throw new Error(
@@ -218,49 +218,5 @@ if (!rawOutput) {
     );
 }
 
-const cleanedOutput = rawOutput
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
-
-try {
-    const result = JSON.parse(cleanedOutput);
-
-    const reply =
-        String(result.reply || "").trim();
-
-    if (!reply) {
-        throw new Error(
-            "Gemini JSON reply is empty"
-        );
-    }
-
-    return {
-        reply,
-        shouldPinSummary:
-            result.shouldPinSummary === true,
-
-        summary:
-            String(result.summary || "")
-                .trim()
-                .slice(0, 1000)
-    };
-
-} catch (error) {
-    console.error(
-        "[GEMINI JSON PARSE ERROR]",
-        rawOutput
-    );
-
-    return {
-        reply:
-            cleanedOutput.startsWith("{")
-                ? "Could you briefly tell me what you need?"
-                : cleanedOutput,
-
-        shouldPinSummary: false,
-        summary: ""
-    };
-}
+return parseStructuredReply(rawOutput);
 }
