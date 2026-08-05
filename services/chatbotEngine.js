@@ -253,7 +253,30 @@ export async function processIncomingWhatsAppMessage({
     return;
 }
 
+const lastAssistantMessage =
+    await WhatsAppMessage.findOne({
+        tenantId: tenant._id,
+        conversationId: conversation._id,
+        senderType: "assistant"
+    })
+    .sort({ createdAt: -1 })
+    .lean();
+
+const confirmsHumanOffer =
+    [
+        "yes",
+        "yes please",
+        "okay",
+        "ok",
+        "sure",
+        "please do"
+    ].includes(normalized) &&
+    /human|connect you|team member|someone from our team/i.test(
+        lastAssistantMessage?.text || ""
+    );
+
 const wantsHuman =
+    confirmsHumanOffer ||
     normalized === "9" ||
     normalized === "human" ||
     normalized === "agent" ||
@@ -266,7 +289,7 @@ const wantsHuman =
         "speak to someone",
         "talk to someone"
     ].some(phrase => normalized.includes(phrase));
-
+    
     if (wantsHuman) {
         conversation.humanHandover = true;
         conversation.status = "waiting_for_human";
@@ -392,84 +415,6 @@ try {
                         message:
                             aiResult.summary ||
                             "A new WhatsApp booking has been received.",
-
-                        email:
-                            `+${incoming.whatsappUserId}`
-                    }
-                }
-            );
-    }
-
-    // HUMAN HANDOVER
-    if (
-        aiResult.requestHumanHandover &&
-        !conversation.humanHandover
-    ) {
-        conversation.humanHandover = true;
-        conversation.status =
-            "waiting_for_human";
-
-        if (
-            collectedData.humanRequestRecorded !==
-            true
-        ) {
-            collectedData.humanRequestRecorded =
-                true;
-
-            if (!bookingCreated) {
-                await Lead.create({
-                    tenantId: tenant._id,
-                    name:
-                        incoming.customerName,
-                    phone:
-                        incoming.whatsappUserId,
-                    message:
-                        incoming.text,
-                    details:
-                        "Customer requested human WhatsApp assistance",
-                    source:
-                        "WhatsApp Chatbot",
-                    status: "new"
-                });
-            }
-        }
-
-        const notificationPayload = {
-            conversationId:
-                conversation._id,
-
-            customerName:
-                incoming.customerName,
-
-            phone:
-                incoming.whatsappUserId,
-
-            message:
-                aiResult.summary ||
-                incoming.text
-        };
-
-        io?.to(`tenant:${tenant._id.toString()}`)
-            .emit(
-                "whatsappHumanRequested",
-                notificationPayload
-            );
-
-        io?.to(`tenant:${tenant._id.toString()}`)
-            .emit(
-                "globalWorkspaceSyncRequest",
-                {
-                    action:
-                        "WHATSAPP_HUMAN_REQUEST",
-
-                    tab: "whatsapp inbox",
-
-                    payload: {
-                        name:
-                            incoming.customerName,
-
-                        message:
-                            "This customer requested a human WhatsApp agent.",
 
                         email:
                             `+${incoming.whatsappUserId}`

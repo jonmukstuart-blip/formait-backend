@@ -209,6 +209,11 @@ Important booking rules:
 - When bookingReady is true, also set shouldPinSummary and conversationComplete to true.
 - Only set requestHumanHandover to true when the customer explicitly requests or accepts human assistance.
 
+Website rules:
+- Use only the business information already provided in these instructions.
+- Do not attempt to open or repeatedly inspect website links.
+- If exact information is unavailable, say so briefly and offer human assistance.
+
 Recent conversation:
 ${conversationHistory}
 
@@ -293,14 +298,6 @@ const request = {
         schema: responseSchema
     }
 };
-
-if (knowledgeUrls.length) {
-    request.tools = [
-        {
-            type: "url_context"
-        }
-    ];
-}
 
 const interaction =
     await ai.interactions.create(request);
