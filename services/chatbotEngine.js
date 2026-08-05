@@ -45,6 +45,29 @@ function getNaturalDelay(tenant) {
     ) + minimum;
 }
 
+function buildSocialFollowUp(tenant) {
+    // Prevent FORMA.IT links appearing for another tenant.
+    if (tenant.slug !== "formait") {
+        return "";
+    }
+
+    return `Thank you for choosing ${tenant.businessName}. Your request has been recorded and our team will contact you shortly.
+
+You’re welcome to follow us for updates:
+
+Instagram:
+https://www.instagram.com/forma.itgroup?igsh=MWt6a3huamt3b3Ewcw==
+
+Facebook:
+https://www.facebook.com/share/171GwhGJQ1/
+
+X:
+https://x.com/Formaitgroup
+
+LinkedIn:
+https://www.linkedin.com/company/forma-it-group/`;
+}
+
 function buildMainMenu() {
     return `What would you like help with?
 
@@ -301,49 +324,213 @@ if (process.env.AI_ENABLED !== "true") {
 }
 
 try {
-const aiResult =
-    await generateBusinessReply({
-        tenant,
-        conversation,
-        customerMessage: incoming.text
-    });
+    const aiResult =
+        await generateBusinessReply({
+            tenant,
+            conversation,
+            customerMessage: incoming.text
+        });
 
     if (
-    !aiResult ||
-    typeof aiResult.reply !== "string" ||
-    !aiResult.reply.trim()
-) {
-    throw new Error(
-        "AI response does not contain a valid customer reply"
-    );
-}
+        !aiResult ||
+        typeof aiResult.reply !== "string" ||
+        !aiResult.reply.trim()
+    ) {
+        throw new Error(
+            "AI response does not contain a valid reply"
+        );
+    }
 
-if (
-    aiResult.shouldPinSummary &&
-    aiResult.summary
-) {
-    await WhatsAppConversation.findOneAndUpdate(
-        {
-            _id: conversation._id,
-            tenantId: tenant._id
-        },
-        {
-            $set: {
-                isPinned: true,
-                pinnedSummary: aiResult.summary,
-                summaryUpdatedAt: new Date()
+    const collectedData = {
+        ...(conversation.collectedData || {})
+    };
+
+    let bookingCreated = false;
+
+    // RECORD BOOKING ONCE
+    if (
+        aiResult.bookingReady &&
+        collectedData.bookingRecorded !== true
+    ) {
+        await Lead.create({
+            tenantId: tenant._id,
+            name: incoming.customerName,
+            phone: incoming.whatsappUserId,
+
+            message:
+                aiResult.summary ||
+                incoming.text,
+
+            details:
+                "Booking or project request captured through WhatsApp chatbot",
+
+            source: "WhatsApp Booking",
+            status: "new"
+        });
+
+        collectedData.bookingRecorded = true;
+        collectedData.bookingRecordedAt =
+            new Date();
+
+        bookingCreated = true;
+
+        io?.to(`tenant:${tenant._id.toString()}`)
+            .emit(
+                "globalWorkspaceSyncRequest",
+                {
+                    action:
+                        "WHATSAPP_BOOKING_CREATED",
+
+                    tab: "whatsapp inbox",
+
+                    payload: {
+                        name:
+                            incoming.customerName,
+
+                        message:
+                            aiResult.summary ||
+                            "A new WhatsApp booking has been received.",
+
+                        email:
+                            `+${incoming.whatsappUserId}`
+                    }
+                }
+            );
+    }
+
+    // HUMAN HANDOVER
+    if (
+        aiResult.requestHumanHandover &&
+        !conversation.humanHandover
+    ) {
+        conversation.humanHandover = true;
+        conversation.status =
+            "waiting_for_human";
+
+        if (
+            collectedData.humanRequestRecorded !==
+            true
+        ) {
+            collectedData.humanRequestRecorded =
+                true;
+
+            if (!bookingCreated) {
+                await Lead.create({
+                    tenantId: tenant._id,
+                    name:
+                        incoming.customerName,
+                    phone:
+                        incoming.whatsappUserId,
+                    message:
+                        incoming.text,
+                    details:
+                        "Customer requested human WhatsApp assistance",
+                    source:
+                        "WhatsApp Chatbot",
+                    status: "new"
+                });
             }
         }
+
+        const notificationPayload = {
+            conversationId:
+                conversation._id,
+
+            customerName:
+                incoming.customerName,
+
+            phone:
+                incoming.whatsappUserId,
+
+            message:
+                aiResult.summary ||
+                incoming.text
+        };
+
+        io?.to(`tenant:${tenant._id.toString()}`)
+            .emit(
+                "whatsappHumanRequested",
+                notificationPayload
+            );
+
+        io?.to(`tenant:${tenant._id.toString()}`)
+            .emit(
+                "globalWorkspaceSyncRequest",
+                {
+                    action:
+                        "WHATSAPP_HUMAN_REQUEST",
+
+                    tab: "whatsapp inbox",
+
+                    payload: {
+                        name:
+                            incoming.customerName,
+
+                        message:
+                            "This customer requested a human WhatsApp agent.",
+
+                        email:
+                            `+${incoming.whatsappUserId}`
+                    }
+                }
+            );
+    }
+
+    // PIN THE SHORT REQUEST SUMMARY
+    if (
+        aiResult.shouldPinSummary &&
+        aiResult.summary
+    ) {
+        conversation.isPinned = true;
+        conversation.pinnedSummary =
+            aiResult.summary;
+
+        conversation.summaryUpdatedAt =
+            new Date();
+    }
+
+    let outgoingReply =
+        aiResult.reply.trim();
+
+    const hasRecordedBooking =
+        bookingCreated ||
+        collectedData.bookingRecorded === true;
+
+    // SEND THANK-YOU AND SOCIAL LINKS ONLY ONCE
+    if (
+        aiResult.conversationComplete &&
+        hasRecordedBooking &&
+        collectedData.socialFollowUpSent !== true
+    ) {
+        const socialFollowUp =
+            buildSocialFollowUp(tenant);
+
+        if (socialFollowUp) {
+            outgoingReply =
+                `${outgoingReply}\n\n${socialFollowUp}`;
+        }
+
+        collectedData.socialFollowUpSent =
+            true;
+    }
+
+    conversation.collectedData =
+        collectedData;
+
+    conversation.markModified(
+        "collectedData"
     );
-}
 
-await reply({
-    tenant,
-    conversation,
-    recipient: incoming.whatsappUserId,
-    text: aiResult.reply
-});
+    await conversation.save();
 
+    await reply({
+        tenant,
+        conversation,
+        recipient:
+            incoming.whatsappUserId,
+        text: outgoingReply
+    });
+    
 } catch (error) {
     console.error(
         "[AI CHATBOT ERROR]",

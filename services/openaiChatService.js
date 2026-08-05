@@ -52,21 +52,30 @@ function parseStructuredReply(rawOutput) {
                     reply: parsed.reply.trim(),
                     shouldPinSummary:
                         parsed.shouldPinSummary === true,
-                    summary:
-                        typeof parsed.summary === "string"
-                            ? parsed.summary.trim()
-                            : ""
-                };
-            }
-        } catch {
-            // Try the preceding JSON object.
-        }
-    }
+                summary:
+                    typeof parsed.summary === "string"
+                        ? parsed.summary.trim()
+                        : "",
 
-    throw new Error(
-        "Gemini did not return a valid structured chatbot response"
-    );
-}
+                bookingReady:
+                    parsed.bookingReady === true,
+
+                requestHumanHandover:
+                    parsed.requestHumanHandover === true,
+
+                conversationComplete:
+                    parsed.conversationComplete === true
+                                };
+                            }
+                        } catch {
+                            // Try the preceding JSON object.
+                        }
+                    }
+
+                        throw new Error(
+                            "Gemini did not return a valid structured chatbot response"
+                        );
+                    }
 
 function getKnowledgeUrls(tenant) {
     const tenantUrls =
@@ -175,6 +184,12 @@ Pinned-summary rules:
 - Do not copy the complete conversation.
 - If the conversation already contains an Assistant message, never greet or introduce yourself again. Answer the latest message directly.
 
+Action rules:
+- Set bookingReady to true only after the customer clearly wants to proceed and has provided the service, requirements, timeline and contact details.
+- Set requestHumanHandover to true when the customer requests or agrees to human assistance.
+- Set conversationComplete to true when the enquiry or booking has been successfully recorded.
+- Never claim a booking is confirmed unless the backend confirms it.
+
 Recent conversation:
 ${conversationHistory}
 
@@ -186,7 +201,10 @@ Return exactly one valid JSON object with no markdown:
 {
   "reply": "Short natural WhatsApp reply",
   "shouldPinSummary": false,
-  "summary": ""
+  "summary": "",
+  "bookingReady": false,
+  "requestHumanHandover": false,
+  "conversationComplete": false
 }
 `.trim();
 
@@ -199,6 +217,24 @@ const responseSchema = {
             description:
                 "Only the short customer-facing WhatsApp reply."
         },
+
+        bookingReady: {
+    type: "boolean",
+    description:
+        "True when the customer wants to book or order and enough contact or project information has been collected."
+},
+
+requestHumanHandover: {
+    type: "boolean",
+    description:
+        "True when the customer asks for a human, agrees to human assistance, or needs a final quotation or commitment."
+},
+
+conversationComplete: {
+    type: "boolean",
+    description:
+        "True when the customer's enquiry, booking or quotation request has been completed."
+},
 
         shouldPinSummary: {
             type: "boolean",
@@ -213,11 +249,14 @@ const responseSchema = {
         }
     },
 
-    required: [
-        "reply",
-        "shouldPinSummary",
-        "summary"
-    ],
+  required: [
+    "reply",
+    "shouldPinSummary",
+    "summary",
+    "bookingReady",
+    "requestHumanHandover",
+    "conversationComplete"
+],
 
     additionalProperties: false
 };
