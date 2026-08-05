@@ -190,12 +190,50 @@ Return exactly one valid JSON object with no markdown:
 }
 `.trim();
 
+const responseSchema = {
+    type: "object",
+
+    properties: {
+        reply: {
+            type: "string",
+            description:
+                "Only the short customer-facing WhatsApp reply."
+        },
+
+        shouldPinSummary: {
+            type: "boolean",
+            description:
+                "True only when the customer clearly wants to order, book, hire or request a quotation."
+        },
+
+        summary: {
+            type: "string",
+            description:
+                "A short internal order summary, or an empty string."
+        }
+    },
+
+    required: [
+        "reply",
+        "shouldPinSummary",
+        "summary"
+    ],
+
+    additionalProperties: false
+};
+
 const request = {
     model:
         process.env.GEMINI_MODEL ||
-        "gemini-2.5-flash-lite",
+        "gemini-3.1-flash-lite",
 
-    input: prompt
+    input: prompt,
+
+    response_format: {
+        type: "text",
+        mime_type: "application/json",
+        schema: responseSchema
+    }
 };
 
 if (knowledgeUrls.length) {
