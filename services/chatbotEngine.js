@@ -308,6 +308,16 @@ const aiResult =
         customerMessage: incoming.text
     });
 
+    if (
+    !aiResult ||
+    typeof aiResult.reply !== "string" ||
+    !aiResult.reply.trim()
+) {
+    throw new Error(
+        "AI response does not contain a valid customer reply"
+    );
+}
+
 if (
     aiResult.shouldPinSummary &&
     aiResult.summary
