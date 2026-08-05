@@ -331,6 +331,8 @@ try {
             customerMessage: incoming.text
         });
 
+        console.log("[AI RESULT]", aiResult);
+
     if (
         !aiResult ||
         typeof aiResult.reply !== "string" ||
@@ -492,28 +494,20 @@ try {
     let outgoingReply =
         aiResult.reply.trim();
 
-    const hasRecordedBooking =
-        bookingCreated ||
-        collectedData.bookingRecorded === true;
-
     // SEND THANK-YOU AND SOCIAL LINKS ONLY ONCE
-    if (
-        aiResult.conversationComplete &&
-        hasRecordedBooking &&
-        collectedData.socialFollowUpSent !== true
-    ) {
-        const socialFollowUp =
-            buildSocialFollowUp(tenant);
+if (
+    bookingCreated &&
+    collectedData.socialFollowUpSent !== true
+) {
+    const socialFollowUp =
+        buildSocialFollowUp(tenant);
 
-        if (socialFollowUp) {
-            outgoingReply =
-                `${outgoingReply}\n\n${socialFollowUp}`;
-        }
+    outgoingReply =
+        socialFollowUp ||
+        `Thank you, ${incoming.customerName}. Your request has been recorded and our team will contact you shortly.`;
 
-        collectedData.socialFollowUpSent =
-            true;
-    }
-
+    collectedData.socialFollowUpSent = true;
+}
     conversation.collectedData =
         collectedData;
 
@@ -530,7 +524,7 @@ try {
             incoming.whatsappUserId,
         text: outgoingReply
     });
-    
+
 } catch (error) {
     console.error(
         "[AI CHATBOT ERROR]",

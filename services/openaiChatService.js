@@ -190,6 +190,25 @@ Action rules:
 - Set conversationComplete to true when the enquiry or booking has been successfully recorded.
 - Never claim a booking is confirmed unless the backend confirms it.
 
+Booking rules:
+- Asking “Do you take bookings?” is only a question. Answer yes, then ask what service the customer needs.
+- Do not claim that a request was handed to the team unless bookingReady is true.
+- Do not set requestHumanHandover merely because the customer mentions booking.
+- Collect the service, main requirements, preferred timeline and approximate budget one question at a time.
+- The WhatsApp phone number counts as contact information.
+- Set bookingReady to true once those details are collected and the customer confirms they want to proceed.
+- When bookingReady is true, thank the customer naturally.
+- Set conversationComplete to true when bookingReady is true.
+
+Important booking rules:
+- Asking whether the business accepts bookings is not a booking.
+- When asked “Do you take bookings?”, answer yes and ask which service the customer needs.
+- Do not claim that a booking was recorded or handed to the team.
+- Set bookingReady to true only after the customer provides the service, requirements, timeline and approximate budget, then confirms they want to proceed.
+- The WhatsApp phone number already counts as contact information.
+- When bookingReady is true, also set shouldPinSummary and conversationComplete to true.
+- Only set requestHumanHandover to true when the customer explicitly requests or accepts human assistance.
+
 Recent conversation:
 ${conversationHistory}
 
