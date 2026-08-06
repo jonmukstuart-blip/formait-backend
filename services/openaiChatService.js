@@ -97,7 +97,7 @@ export async function generateBusinessReply({
         conversationId: conversation._id
     })
         .sort({ createdAt: -1 })
-        .limit(8)
+        .limit(6)
         .lean();
 
     const conversationHistory = recentMessages
@@ -114,9 +114,10 @@ export async function generateBusinessReply({
         })
         .join("\n");
 
-        const businessKnowledge =
+const businessKnowledge =
     await getBusinessKnowledgeContext(
-        tenant._id
+        tenant._id,
+        customerMessage
     );
 
 const existingSummary =
@@ -157,6 +158,10 @@ Communication rules:
 - Never pretend to be human.
 - Never invent services, prices, deadlines or guarantees.
 - Do not force a sales conversation when the customer only needs information.
+- The latest customer message has priority over older conversation history.
+- If the customer changes to a different service or topic, answer the new topic directly.
+- Do not assume a new enquiry belongs to an older project.
+- Only connect the new question to an older project when the customer clearly refers back to it.
 
 Qualification order:
 1. Understand the service or product needed.
