@@ -217,6 +217,22 @@ export async function processIncomingWhatsAppMessage({
             }
         );
 
+        // Start a fresh AI session after the previous enquiry finished
+if (
+    conversation.sessionNeedsReset &&
+    !conversation.humanHandover
+) {
+    conversation.state = "main_menu";
+    conversation.collectedData = {};
+
+    conversation.sessionStartedAt =
+        new Date(Date.now() - 1000);
+
+    conversation.sessionNeedsReset = false;
+
+    await conversation.save();
+}
+
          conversation.$locals.replyTargetTime =
          Date.now() + getNaturalDelay(tenant);
 
@@ -460,9 +476,17 @@ if (
         "collectedData"
     );
 
-    await conversation.save();
+   await conversation.save();
 
-    await reply({
+if (
+    aiResult.conversationComplete === true &&
+    !conversation.humanHandover
+) {
+    conversation.sessionNeedsReset = true;
+    await conversation.save();
+}
+
+await reply({
         tenant,
         conversation,
         recipient:

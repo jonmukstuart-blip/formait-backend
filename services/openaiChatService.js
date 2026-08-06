@@ -92,10 +92,19 @@ export async function generateBusinessReply({
         apiKey: process.env.GEMINI_API_KEY
     });
 
-    const recentMessages = await WhatsAppMessage.find({
-        tenantId: tenant._id,
-        conversationId: conversation._id
-    })
+const messageQuery = {
+    tenantId: tenant._id,
+    conversationId: conversation._id
+};
+
+if (conversation.sessionStartedAt) {
+    messageQuery.createdAt = {
+        $gte: conversation.sessionStartedAt
+    };
+}
+
+const recentMessages =
+    await WhatsAppMessage.find(messageQuery)
         .sort({ createdAt: -1 })
         .limit(6)
         .lean();

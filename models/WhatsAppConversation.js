@@ -46,16 +46,39 @@ const whatsappConversationSchema = new mongoose.Schema(
     type: Boolean,
     default: false
 },
-
+disclosureSentAt: {
+    type: Date,
+    default: null
+},
         isPinned: {
     type: Boolean,
     default: false
+},
+
+pinnedSummary: {
+    type: String,
+    default: ""
+},
+
+summaryUpdatedAt: {
+    type: Date,
+    default: null
 },
 
 priority: {
     type: String,
     enum: ["normal", "high", "urgent"],
     default: "normal"
+},
+
+sessionStartedAt: {
+    type: Date,
+    default: Date.now
+},
+
+sessionNeedsReset: {
+    type: Boolean,
+    default: false
 },
 
 assignedTo: {
