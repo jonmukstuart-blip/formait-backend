@@ -27,6 +27,22 @@ function extractIncomingMessage(payload) {
     };
 }
 
+function extractWhatsAppStatus(payload) {
+    const status =
+        payload?.entry?.[0]
+            ?.changes?.[0]
+            ?.value?.statuses?.[0];
+
+    if (!status?.id || !status?.status) {
+        return null;
+    }
+
+    return {
+        whatsappMessageId: status.id,
+        status: status.status
+    };
+}
+
 function wait(milliseconds) {
     return new Promise(resolve =>
         setTimeout(resolve, milliseconds)
@@ -177,6 +193,83 @@ export async function processIncomingWhatsAppMessage({
     tenant,
     io
 }) {
+
+    const statusUpdate =
+    extractWhatsAppStatus(payload);
+
+if (statusUpdate) {
+    const allowedStatuses = [
+        "sent",
+        "delivered",
+        "read",
+        "failed"
+    ];
+
+    if (
+        allowedStatuses.includes(
+            statusUpdate.status
+        )
+    ) {
+        let updatedMessage = null;
+
+        // Meta status events can arrive before the
+        // outgoing message finishes saving.
+        for (
+            let attempt = 0;
+            attempt < 6 && !updatedMessage;
+            attempt++
+        ) {
+            updatedMessage =
+                await WhatsAppMessage.findOneAndUpdate(
+                    {
+                        tenantId: tenant._id,
+
+                        whatsappMessageId:
+                            statusUpdate
+                                .whatsappMessageId
+                    },
+                    {
+                        $set: {
+                            status:
+                                statusUpdate.status
+                        }
+                    },
+                    {
+                        new: true
+                    }
+                );
+
+            if (!updatedMessage) {
+                await wait(500);
+            }
+        }
+
+        if (updatedMessage) {
+            console.log(
+                `[WHATSAPP STATUS] ${statusUpdate.status.toUpperCase()} — ${statusUpdate.whatsappMessageId}`
+            );
+
+            io?.to(
+                `tenant:${tenant._id.toString()}`
+            ).emit(
+                "globalWorkspaceSyncRequest",
+                {
+                    action:
+                        "DATABASE_WHATSAPP_SYNC",
+
+                    tab:
+                        "whatsapp inbox"
+                }
+            );
+        } else {
+            console.warn(
+                `[WHATSAPP STATUS] Message not found — ${statusUpdate.whatsappMessageId}`
+            );
+        }
+    }
+
+    return;
+}
     const incoming = extractIncomingMessage(payload);
 
     // Ignore delivery reports and non-message events
@@ -415,6 +508,12 @@ try {
 
         bookingCreated = true;
 
+        conversation.status = "follow_up";
+        conversation.needsFollowUp = true;
+        conversation.followUpReason =
+        aiResult.summary ||
+        "Customer has a new booking or project request.";
+
         io?.to(`tenant:${tenant._id.toString()}`)
             .emit(
                 "globalWorkspaceSyncRequest",
@@ -483,6 +582,12 @@ if (
     !conversation.humanHandover
 ) {
     conversation.sessionNeedsReset = true;
+
+    if (!conversation.needsFollowUp) {
+        conversation.status = "closed";
+        conversation.closedAt = new Date();
+    }
+
     await conversation.save();
 }
 

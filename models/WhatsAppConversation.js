@@ -38,7 +38,7 @@ const whatsappConversationSchema = new mongoose.Schema(
 
         status: {
             type: String,
-            enum: ["active", "waiting_for_human", "closed"],
+            enum: ["active", "waiting_for_human", "follow_up", "closed"],
             default: "active"
         },
 
@@ -79,6 +79,21 @@ sessionStartedAt: {
 sessionNeedsReset: {
     type: Boolean,
     default: false
+},
+
+needsFollowUp: {
+    type: Boolean,
+    default: false
+},
+
+followUpReason: {
+    type: String,
+    default: ""
+},
+
+closedAt: {
+    type: Date,
+    default: null
 },
 
 assignedTo: {

@@ -2,12 +2,23 @@ import express from "express";
 import Tenant from "../models/Tenant.js";
 import WhatsAppConversation from "../models/WhatsAppConversation.js";
 import WhatsAppMessage from "../models/WhatsAppMessage.js";
-import { protect } from "../middleware/auth.js";
+import {
+    protect,
+    authorizeRoles
+} from "../middleware/auth.js";
 import { sendWhatsAppText } from "../services/whatsappService.js";
 
 const router = express.Router();
 
-router.use(protect);
+router.use(
+    protect,
+    authorizeRoles(
+        "owner",
+        "admin",
+        "sales",
+        "support"
+    )
+);
 
 // GET BUSINESS WHATSAPP CONVERSATIONS
 router.get("/conversations", async (req, res) => {
@@ -19,9 +30,81 @@ router.get("/conversations", async (req, res) => {
             .sort({
                 isPinned: -1,
                 lastMessageAt: -1
-            });
+            })
+            .lean();
 
-        res.json(conversations);
+        const conversationIds =
+            conversations.map(
+                conversation =>
+                    conversation._id
+            );
+
+        const latestMessages =
+            conversationIds.length
+                ? await WhatsAppMessage.aggregate([
+                    {
+                        $match: {
+                            tenantId:
+                                req.tenantId,
+
+                            conversationId: {
+                                $in:
+                                    conversationIds
+                            }
+                        }
+                    },
+
+                    {
+                        $sort: {
+                            createdAt: -1
+                        }
+                    },
+
+                    {
+                        $group: {
+                            _id: "$conversationId",
+
+                            text: {
+                                $first: "$text"
+                            },
+
+                            direction: {
+                                $first:
+                                    "$direction"
+                            },
+
+                            createdAt: {
+                                $first:
+                                    "$createdAt"
+                            }
+                        }
+                    }
+                ])
+                : [];
+
+        const latestMessageMap =
+            new Map(
+                latestMessages.map(message => [
+                    String(message._id),
+                    message
+                ])
+            );
+
+        const result =
+            conversations.map(
+                conversation => ({
+                    ...conversation,
+
+                    lastMessage:
+                        latestMessageMap.get(
+                            String(
+                                conversation._id
+                            )
+                        ) || null
+                })
+            );
+
+        res.json(result);
 
     } catch (error) {
         res.status(500).json({
@@ -228,5 +311,89 @@ router.patch(
         }
     }
 );
+
+// CLOSE CONVERSATION
+router.patch("/conversations/:id/close", async (req, res) => {
+    try {
+        const conversation =
+            await WhatsAppConversation.findOneAndUpdate(
+                {
+                    _id: req.params.id,
+                    tenantId: req.tenantId
+                },
+                {
+                    $set: {
+                        status: "closed",
+                        humanHandover: true,
+                        assignedTo: req.user._id
+                    }
+                },
+                { new: true }
+            );
+
+        if (!conversation) {
+            return res.status(404).json({
+                error: "Conversation not found"
+            });
+        }
+
+        req.app.get("io")?.emit("globalWorkspaceSyncRequest", {
+            action: "DATABASE_WHATSAPP_SYNC",
+            tab: "whatsapp inbox"
+        });
+
+        res.json({
+            success: true,
+            conversation
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            error: error.message
+        });
+    }
+});
+
+// REOPEN CONVERSATION IN HUMAN MODE
+router.patch("/conversations/:id/reopen", async (req, res) => {
+    try {
+        const conversation =
+            await WhatsAppConversation.findOneAndUpdate(
+                {
+                    _id: req.params.id,
+                    tenantId: req.tenantId
+                },
+                {
+                    $set: {
+                        status: "active",
+                        humanHandover: true,
+                        assignedTo: req.user._id
+                    }
+                },
+                { new: true }
+            );
+
+        if (!conversation) {
+            return res.status(404).json({
+                error: "Conversation not found"
+            });
+        }
+
+        req.app.get("io")?.emit("globalWorkspaceSyncRequest", {
+            action: "DATABASE_WHATSAPP_SYNC",
+            tab: "whatsapp inbox"
+        });
+
+        res.json({
+            success: true,
+            conversation
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            error: error.message
+        });
+    }
+});
 
 export default router;
