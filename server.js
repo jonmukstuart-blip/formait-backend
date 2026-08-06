@@ -43,6 +43,7 @@ import chatRoutes from "./routes/chat.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
 import portfolioRoutes from "./routes/portfolioRoutes.js";
 import clientRoutes from "./routes/client.js";
+import businessKnowledgeRoutes from "./routes/businessKnowledgeRoutes.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -134,6 +135,10 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/client", clientRoutes);
 app.use("/api/whatsapp", whatsappRoutes);
 app.use("/api/admin/whatsapp", whatsappAdminRoutes);
+app.use(
+    "/api/admin/business-knowledge",
+    businessKnowledgeRoutes
+);
 
 // Direct target gateway for your AI Agent Panel executions
 app.use("/api/ai", aiAgentRouter); 
