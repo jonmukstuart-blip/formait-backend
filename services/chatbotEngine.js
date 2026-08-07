@@ -205,68 +205,71 @@ if (statusUpdate) {
         "failed"
     ];
 
+    if (!allowedStatuses.includes(statusUpdate.status)) {
+        return;
+    }
+
+    const statusRank = {
+        sent: 1,
+        delivered: 2,
+        read: 3,
+        failed: 4
+    };
+
+    let existingMessage = null;
+
+    for (let attempt = 0; attempt < 6; attempt++) {
+        existingMessage =
+            await WhatsAppMessage.findOne({
+                tenantId: tenant._id,
+                whatsappMessageId:
+                    statusUpdate.whatsappMessageId
+            }).select("_id status");
+
+        if (existingMessage) break;
+
+        await wait(500);
+    }
+
+    if (!existingMessage) {
+        console.warn(
+            `[WHATSAPP STATUS] Message not found — ${statusUpdate.whatsappMessageId}`
+        );
+
+        return;
+    }
+
+    const currentRank =
+        statusRank[existingMessage.status] || 0;
+
+    const incomingRank =
+        statusRank[statusUpdate.status] || 0;
+
     if (
-        allowedStatuses.includes(
-            statusUpdate.status
+        existingMessage.status === statusUpdate.status ||
+        (
+            statusUpdate.status !== "failed" &&
+            incomingRank <= currentRank
         )
     ) {
-        let updatedMessage = null;
+        return;
+    }
 
-        // Meta status events can arrive before the
-        // outgoing message finishes saving.
-        for (
-            let attempt = 0;
-            attempt < 6 && !updatedMessage;
-            attempt++
-        ) {
-            updatedMessage =
-                await WhatsAppMessage.findOneAndUpdate(
-                    {
-                        tenantId: tenant._id,
-
-                        whatsappMessageId:
-                            statusUpdate
-                                .whatsappMessageId
-                    },
-                    {
-                        $set: {
-                            status:
-                                statusUpdate.status
-                        }
-                    },
-                    {
-                        new: true
-                    }
-                );
-
-            if (!updatedMessage) {
-                await wait(500);
+    await WhatsAppMessage.updateOne(
+        {
+            _id: existingMessage._id,
+            status: existingMessage.status
+        },
+        {
+            $set: {
+                status: statusUpdate.status
             }
         }
+    );
 
-        if (updatedMessage) {
-            console.log(
-                `[WHATSAPP STATUS] ${statusUpdate.status.toUpperCase()} — ${statusUpdate.whatsappMessageId}`
-            );
-
-            io?.to(
-                `tenant:${tenant._id.toString()}`
-            ).emit(
-                "globalWorkspaceSyncRequest",
-                {
-                    action:
-                        "DATABASE_WHATSAPP_SYNC",
-
-                    tab:
-                        "whatsapp inbox"
-                }
-            );
-        } else {
-            console.warn(
-                `[WHATSAPP STATUS] Message not found — ${statusUpdate.whatsappMessageId}`
-            );
-        }
-    }
+    console.log(
+        `[WHATSAPP STATUS] ${statusUpdate.status.toUpperCase()} — ${statusUpdate.whatsappMessageId}`
+    );
 
     return;
 }
@@ -417,12 +420,6 @@ io?.to(`tenant:${tenant._id.toString()}`)
         "whatsappHumanRequested",
         notificationPayload
     );
-
-io?.to(`tenant:${tenant._id.toString()}`)
-    .emit("globalWorkspaceSyncRequest", {
-        action: "DATABASE_WHATSAPP_SYNC",
-        tab: "whatsapp inbox"
-    });
 
         await Lead.create({
             tenantId: tenant._id,
