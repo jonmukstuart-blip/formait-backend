@@ -7,6 +7,7 @@ import {
     authorizeRoles
 } from "../middleware/auth.js";
 import { sendWhatsAppText } from "../services/whatsappService.js";
+import { buildSocialFollowUp } from "../services/chatbotEngine.js";
 
 const router = express.Router();
 
@@ -270,28 +271,16 @@ router.post(
 );
 
 // RETURN CONVERSATION TO CHATBOT
+// RETURN CONVERSATION TO CHATBOT
 router.patch(
     "/conversations/:id/return-to-bot",
     async (req, res) => {
         try {
             const conversation =
-                await WhatsAppConversation.findOneAndUpdate(
-                    {
-                        _id: req.params.id,
-                        tenantId: req.tenantId
-                    },
-                    {
-                        $set: {
-                            humanHandover: false,
-                            status: "active",
-                            assignedTo: null,
-                            state: "main_menu"
-                        }
-                    },
-                    {
-                        new: true
-                    }
-                );
+                await WhatsAppConversation.findOne({
+                    _id: req.params.id,
+                    tenantId: req.tenantId
+                });
 
             if (!conversation) {
                 return res.status(404).json({
@@ -299,12 +288,80 @@ router.patch(
                 });
             }
 
+            const tenant = await Tenant.findOne({
+                _id: req.tenantId,
+                status: "active"
+            }).select("+whatsapp.accessToken");
+
+            if (!tenant) {
+                return res.status(404).json({
+                    error: "Business account not found"
+                });
+            }
+
+            const collectedData = {
+                ...(conversation.collectedData || {})
+            };
+
+            // Send closing message only once
+            if (
+                collectedData.socialFollowUpSent !== true
+            ) {
+                const closingMessage =
+                    buildSocialFollowUp(tenant) ||
+                    `Thank you for contacting ${tenant.businessName}. We appreciate your time.`;
+
+                const result =
+                    await sendWhatsAppText({
+                        tenant,
+                        recipient:
+                            conversation.whatsappUserId,
+                        text: closingMessage
+                    });
+
+                await WhatsAppMessage.create({
+                    tenantId: tenant._id,
+                    conversationId:
+                        conversation._id,
+                    whatsappMessageId:
+                        result?.messages?.[0]?.id || "",
+                    direction: "outgoing",
+                    senderType: "assistant",
+                    text: closingMessage,
+                    status: "sent"
+                });
+
+                collectedData.socialFollowUpSent =
+                    true;
+            }
+
+            // Return control to chatbot
+            conversation.humanHandover = false;
+            conversation.status = "active";
+            conversation.assignedTo = null;
+            conversation.state = "main_menu";
+            conversation.collectedData =
+                collectedData;
+            conversation.lastMessageAt =
+                new Date();
+
+            conversation.markModified(
+                "collectedData"
+            );
+
+            await conversation.save();
+
             res.json({
                 success: true,
                 conversation
             });
 
         } catch (error) {
+            console.error(
+                "[RETURN TO BOT ERROR]",
+                error
+            );
+
             res.status(500).json({
                 error: error.message
             });

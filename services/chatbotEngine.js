@@ -61,7 +61,7 @@ function getNaturalDelay(tenant) {
     ) + minimum;
 }
 
-function buildSocialFollowUp(tenant) {
+export function buildSocialFollowUp(tenant) {
     // Prevent FORMA.IT links appearing for another tenant.
     if (tenant.slug !== "formait") {
         return "";
@@ -553,7 +553,10 @@ try {
 
     // SEND THANK-YOU AND SOCIAL LINKS ONLY ONCE
 if (
-    bookingCreated &&
+    (
+        bookingCreated ||
+        aiResult.conversationComplete === true
+    ) &&
     collectedData.socialFollowUpSent !== true
 ) {
     const socialFollowUp =
