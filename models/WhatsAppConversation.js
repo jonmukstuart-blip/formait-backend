@@ -91,6 +91,34 @@ followUpReason: {
     default: ""
 },
 
+followUpAt: {
+    type: Date,
+    default: null,
+    index: true
+},
+
+followUpNotifiedAt: {
+    type: Date,
+    default: null
+},
+
+followUpCreatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+},
+
+followUpStatus: {
+    type: String,
+    enum: ["none", "pending", "completed", "cancelled"],
+    default: "none"
+},
+
+followUpCompletedAt: {
+    type: Date,
+    default: null
+},
+
 closedAt: {
     type: Date,
     default: null

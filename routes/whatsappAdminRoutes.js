@@ -369,6 +369,175 @@ router.patch(
     }
 );
 
+// SCHEDULE WHATSAPP FOLLOW-UP
+router.patch(
+    "/conversations/:id/schedule-follow-up",
+    async (req, res) => {
+        try {
+            const {
+                followUpAt,
+                reason
+            } = req.body;
+
+            const followUpDate =
+                new Date(followUpAt);
+
+            if (
+                !followUpAt ||
+                Number.isNaN(followUpDate.getTime())
+            ) {
+                return res.status(400).json({
+                    error: "A valid follow-up date is required"
+                });
+            }
+
+            if (followUpDate <= new Date()) {
+                return res.status(400).json({
+                    error: "Follow-up time must be in the future"
+                });
+            }
+
+            const conversation =
+                await WhatsAppConversation.findOneAndUpdate(
+                    {
+                        _id: req.params.id,
+                        tenantId: req.tenantId
+                    },
+                    {
+                        $set: {
+                            needsFollowUp: true,
+                            status: "follow_up",
+                            followUpAt: followUpDate,
+                            followUpReason:
+                                String(reason || "")
+                                    .trim(),
+                            followUpStatus: "pending",
+                            followUpCreatedBy:
+                                req.user._id,
+                            followUpNotifiedAt: null,
+                            followUpCompletedAt: null
+                        }
+                    },
+                    {
+                        new: true
+                    }
+                );
+
+            if (!conversation) {
+                return res.status(404).json({
+                    error: "Conversation not found"
+                });
+            }
+
+            req.app
+                .get("io")
+                ?.to(
+                    `tenant:${req.tenantId.toString()}`
+                )
+                .emit(
+                    "globalWorkspaceSyncRequest",
+                    {
+                        action:
+                            "WHATSAPP_FOLLOW_UP_SCHEDULED",
+                        tab: "whatsapp inbox",
+                        payload: {
+                            name:
+                                conversation.customerName,
+
+                            message:
+                                `Follow-up scheduled for ${followUpDate.toLocaleString()}`,
+
+                            conversationId:
+                                conversation._id
+                        }
+                    }
+                );
+
+            res.json({
+                success: true,
+                conversation
+            });
+
+        } catch (error) {
+            console.error(
+                "[WHATSAPP FOLLOW UP ERROR]",
+                error
+            );
+
+            res.status(500).json({
+                error: error.message
+            });
+        }
+    }
+);
+
+
+// COMPLETE WHATSAPP FOLLOW-UP
+router.patch(
+    "/conversations/:id/complete-follow-up",
+    async (req, res) => {
+        try {
+            const conversation =
+                await WhatsAppConversation.findOneAndUpdate(
+                    {
+                        _id: req.params.id,
+                        tenantId: req.tenantId
+                    },
+                    {
+                        $set: {
+                            needsFollowUp: false,
+                            followUpStatus: "completed",
+                            followUpCompletedAt:
+                                new Date(),
+                            followUpAt: null,
+                            followUpNotifiedAt: null,
+
+                            status: "active"
+                        }
+                    },
+                    {
+                        new: true
+                    }
+                );
+
+            if (!conversation) {
+                return res.status(404).json({
+                    error: "Conversation not found"
+                });
+            }
+
+            req.app
+                .get("io")
+                ?.to(
+                    `tenant:${req.tenantId.toString()}`
+                )
+                .emit(
+                    "globalWorkspaceSyncRequest",
+                    {
+                        action:
+                            "WHATSAPP_FOLLOW_UP_COMPLETED",
+                        tab: "whatsapp inbox"
+                    }
+                );
+
+            res.json({
+                success: true,
+                conversation
+            });
+
+        } catch (error) {
+            console.error(
+                "[WHATSAPP FOLLOW UP COMPLETE ERROR]",
+                error
+            );
+
+            res.status(500).json({
+                error: error.message
+            });
+        }
+    }
+);
+
 // CLOSE CONVERSATION
 router.patch("/conversations/:id/close", async (req, res) => {
     try {

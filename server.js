@@ -44,6 +44,7 @@ import testimonialRoutes from "./routes/testimonialRoutes.js";
 import portfolioRoutes from "./routes/portfolioRoutes.js";
 import clientRoutes from "./routes/client.js";
 import businessKnowledgeRoutes from "./routes/businessKnowledgeRoutes.js";
+import { startWhatsAppFollowUpScheduler } from "./services/whatsappFollowUpService.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -256,7 +257,9 @@ const PORT = process.env.PORT || 5000;
         httpServer.listen(PORT, () => {
             console.log(`🚀 [ENGINE LIVE] Master Node operational on port ${PORT}`);
             initDatabaseChangeStreams(io); // Safely trigger after db topology builds completely
+        startWhatsAppFollowUpScheduler(io);
         });
+        
     } catch (error) {
         console.error("❌ Database connection failure. Aborting platform boot cycle:", error);
         process.exit(1);

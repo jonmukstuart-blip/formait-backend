@@ -342,6 +342,27 @@ if (
         status: "received"
     });
 
+    // Notify admin of genuine incoming customer message
+io?.to(
+    `tenant:${tenant._id.toString()}`
+).emit(
+    "whatsappNewMessage",
+    {
+        conversationId:
+            conversation._id.toString(),
+
+        customerName:
+            incoming.customerName ||
+            "WhatsApp Customer",
+
+        phone:
+            incoming.whatsappUserId,
+
+        message:
+            incoming.text
+    }
+);
+
     // Do not let the bot interrupt a human conversation
     if (conversation.humanHandover) {
         return;
