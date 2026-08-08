@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
-"scripts": {
+  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node -r dotenv/config server.js",
     "dev": "nodemon -r dotenv/config server.js",
@@ -12,7 +12,7 @@
     "owner:promote": "node scripts/promoteOwner.js",
     "tenant:memberships": "node scripts/createTenantMemberships.js",
     "whatsapp:indexes": "node scripts/fixWhatsAppConversationIndexes.js"
-},
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -32,6 +32,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^8.0.11",
     "nodemon": "^3.1.14",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "web-push": "^3.6.7"
   }
 }

@@ -45,6 +45,8 @@ import portfolioRoutes from "./routes/portfolioRoutes.js";
 import clientRoutes from "./routes/client.js";
 import businessKnowledgeRoutes from "./routes/businessKnowledgeRoutes.js";
 import { startWhatsAppFollowUpScheduler } from "./services/whatsappFollowUpService.js";
+import adminPushRoutes from
+    "./routes/adminPushRoutes.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -139,6 +141,10 @@ app.use("/api/admin/whatsapp", whatsappAdminRoutes);
 app.use(
     "/api/admin/business-knowledge",
     businessKnowledgeRoutes
+);
+app.use(
+    "/api/admin/push",
+    adminPushRoutes
 );
 
 // Direct target gateway for your AI Agent Panel executions

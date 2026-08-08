@@ -1,4 +1,5 @@
 import WhatsAppConversation from "../models/WhatsAppConversation.js";
+import { sendTenantPushNotification } from "./adminPushService.js";
 
 let followUpTimer = null;
 let schedulerRunning = false;
@@ -68,6 +69,38 @@ async function processDueFollowUps(io) {
                 "whatsappFollowUpDue",
                 payload
             );
+
+            
+void sendTenantPushNotification({
+    tenantId: conversation.tenantId,
+
+    title: `⏰ Follow-up due — ${conversation.customerName}`,
+
+    body:
+        conversation.followUpReason ||
+        "This WhatsApp customer is due for follow-up.",
+
+    url: "/admin.html",
+
+    tag: `whatsapp-followup-${conversation._id}`,
+
+    urgent: true,
+
+    data: {
+        type: "follow_up_due",
+        conversationId:
+            conversation._id.toString(),
+        customerName:
+            conversation.customerName,
+        phone:
+            conversation.whatsappUserId
+    }
+}).catch(error => {
+    console.error(
+        "[WHATSAPP FOLLOW-UP PUSH ERROR]",
+        error.message
+    );
+});
 
             console.log(
                 `[WHATSAPP FOLLOW UP DUE] ${payload.customerName} — ${payload.phone}`

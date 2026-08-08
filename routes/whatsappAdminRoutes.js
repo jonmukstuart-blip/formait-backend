@@ -8,6 +8,7 @@ import {
 } from "../middleware/auth.js";
 import { sendWhatsAppText } from "../services/whatsappService.js";
 import { buildSocialFollowUp } from "../services/chatbotEngine.js";
+import { sendTenantPushNotification } from "../services/adminPushService.js";
 
 const router = express.Router();
 
@@ -428,6 +429,43 @@ router.patch(
                     error: "Conversation not found"
                 });
             }
+
+            void sendTenantPushNotification({
+    tenantId: req.tenantId,
+
+    title: `📅 Follow-up scheduled — ${conversation.customerName}`,
+
+    body:
+        `${conversation.followUpReason || "Customer follow-up"} — ` +
+        new Date(conversation.followUpAt).toLocaleString("en-UG", {
+            timeZone: "Africa/Kampala",
+            dateStyle: "medium",
+            timeStyle: "short"
+        }),
+
+    url: "/admin.html",
+
+    tag: `whatsapp-followup-scheduled-${conversation._id}`,
+
+    urgent: true,
+
+    data: {
+        type: "follow_up_scheduled",
+        conversationId:
+            conversation._id.toString(),
+        customerName:
+            conversation.customerName,
+        phone:
+            conversation.whatsappUserId,
+        followUpAt:
+            conversation.followUpAt
+    }
+}).catch(error => {
+    console.error(
+        "[WHATSAPP SCHEDULE PUSH ERROR]",
+        error.message
+    );
+});
 
             req.app
                 .get("io")

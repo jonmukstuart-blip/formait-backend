@@ -3,6 +3,7 @@ import WhatsAppConversation from "../models/WhatsAppConversation.js";
 import WhatsAppMessage from "../models/WhatsAppMessage.js";
 import { sendWhatsAppText } from "./whatsappService.js";
 import { generateBusinessReply } from "./openaiChatService.js";
+import { sendTenantPushNotification } from "./adminPushService.js";
 
 function extractIncomingMessage(payload) {
     const value =
@@ -363,10 +364,34 @@ io?.to(
     }
 );
 
-    // Do not let the bot interrupt a human conversation
-    if (conversation.humanHandover) {
-        return;
-    }
+// Notify the assigned team when a customer replies
+// during an active human conversation.
+if (conversation.humanHandover) {
+    void sendTenantPushNotification({
+        tenantId: tenant._id,
+        title: `Reply from ${incoming.customerName}`,
+        body: incoming.text.slice(0, 160),
+        url: "/admin.html",
+        tag: `whatsapp-human-reply-${conversation._id}`,
+        urgent: false,
+        data: {
+            type: "whatsapp_message",
+            conversationId:
+                conversation._id.toString(),
+            customerName:
+                incoming.customerName,
+            phone:
+                incoming.whatsappUserId
+        }
+    }).catch(error => {
+        console.error(
+            "[WHATSAPP PUSH ERROR]",
+            error.message
+        );
+    });
+
+    return;
+}
 
     const normalized =
         incoming.text.trim().toLowerCase();
@@ -423,11 +448,63 @@ const wantsHuman =
         "talk to someone"
     ].some(phrase => normalized.includes(phrase));
     
+    // Send a normal phone notification for a new customer message.
+// A human request receives its own urgent notification below.
+if (!wantsHuman) {
+    void sendTenantPushNotification({
+        tenantId: tenant._id,
+        title: `New WhatsApp message from ${incoming.customerName}`,
+        body: incoming.text.slice(0, 160),
+        url: "/admin.html",
+        tag: `whatsapp-message-${conversation._id}`,
+        urgent: false,
+        data: {
+            type: "whatsapp_message",
+            conversationId:
+                conversation._id.toString(),
+            customerName:
+                incoming.customerName,
+            phone:
+                incoming.whatsappUserId
+        }
+    }).catch(error => {
+        console.error(
+            "[WHATSAPP PUSH ERROR]",
+            error.message
+        );
+    });
+}
+
     if (wantsHuman) {
         conversation.humanHandover = true;
         conversation.status = "waiting_for_human";
 
         await conversation.save();
+
+        void sendTenantPushNotification({
+    tenantId: tenant._id,
+    title: "Human WhatsApp agent requested",
+    body:
+        `${incoming.customerName} requested human assistance: ` +
+        incoming.text.slice(0, 120),
+    url: "/admin.html",
+    tag: `whatsapp-human-${conversation._id}`,
+    urgent: true,
+    data: {
+        type: "human_request",
+        conversationId:
+            conversation._id.toString(),
+        customerName:
+            incoming.customerName,
+        phone:
+            incoming.whatsappUserId
+    }
+}).catch(error => {
+    console.error(
+        "[WHATSAPP HUMAN PUSH ERROR]",
+        error.message
+    );
+});
 
         const notificationPayload = {
     conversationId: conversation._id,
@@ -554,6 +631,37 @@ try {
                     }
                 }
             );
+            // Urgent phone notification for a new booking
+void sendTenantPushNotification({
+    tenantId: tenant._id,
+
+    title: `📅 New booking — ${incoming.customerName}`,
+
+    body:
+        aiResult.summary ||
+        `${incoming.customerName} has submitted a new WhatsApp booking or project request.`,
+
+    url: "/admin.html",
+
+    tag: `whatsapp-booking-${conversation._id}`,
+
+    urgent: true,
+
+    data: {
+        type: "booking",
+        conversationId:
+            conversation._id.toString(),
+        customerName:
+            incoming.customerName,
+        phone:
+            incoming.whatsappUserId
+    }
+}).catch(error => {
+    console.error(
+        "[WHATSAPP BOOKING PUSH ERROR]",
+        error.message
+    );
+});
     }
 
     // PIN THE SHORT REQUEST SUMMARY
